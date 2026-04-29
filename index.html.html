@@ -1,0 +1,2309 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Habitat – Palermo Edition</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<style>
+  :root {
+    /* Palette Palermo */
+    --cupola: #9A3429;
+    --cupola-deep: #6E1F18;
+    --cupola-light: #B8483A;
+    --sabbia: #F8EBD3;
+    --sabbia-warm: #EDD6A8;
+    --sabbia-light: #FBF4E4;
+    --ocra: #E8B14B;
+    --ocra-dark: #C68B2C;
+    --ocra-light: #F4D08A;
+    --terracotta: #C66647;
+    --mare: #93B5B7;
+    --mare-deep: #6F9395;
+    --verde: #5A8C4A;
+    --verde-light: #B5D1A8;
+    --rosso-attesa: #C84B3D;
+    --rosso-attesa-light: #F2CFCB;
+    --testo: #2C1810;
+    --testo-muto: #6B5444;
+    --testo-debole: #A08B72;
+    --linea: rgba(110, 31, 24, 0.12);
+    --linea-forte: rgba(110, 31, 24, 0.22);
+    --ombra-soft: 0 2px 8px rgba(110, 31, 24, 0.08);
+    --ombra-medium: 0 4px 16px rgba(110, 31, 24, 0.12);
+    --ombra-strong: 0 8px 28px rgba(110, 31, 24, 0.18);
+    --raggio-sm: 8px;
+    --raggio-md: 14px;
+    --raggio-lg: 20px;
+    --raggio-xl: 28px;
+    --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
+    --font-body: 'DM Sans', system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    font-family: var(--font-body);
+    color: var(--testo);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow: hidden;
+  }
+
+  body {
+    background: radial-gradient(ellipse at top left, #F8EBD3 0%, #EDD6A8 60%, #D4B889 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    position: relative;
+  }
+
+  body::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image:
+      radial-gradient(circle at 20% 30%, rgba(232,177,75,0.08) 0%, transparent 40%),
+      radial-gradient(circle at 80% 70%, rgba(154,52,41,0.06) 0%, transparent 40%);
+    pointer-events: none;
+  }
+
+  /* Texture sottile sabbia */
+  body::after {
+    content: '';
+    position: absolute; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.43 0 0 0 0 0.30 0 0 0 0 0.16 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    opacity: 0.5;
+    pointer-events: none;
+    mix-blend-mode: multiply;
+  }
+
+  /* Phone frame */
+  .phone-frame {
+    width: 390px;
+    height: 844px;
+    max-height: calc(100vh - 40px);
+    background: #1a1410;
+    border-radius: 50px;
+    padding: 8px;
+    box-shadow:
+      0 0 0 2px rgba(0,0,0,0.4),
+      0 30px 80px rgba(110, 31, 24, 0.35),
+      0 10px 30px rgba(0,0,0,0.2);
+    position: relative;
+    z-index: 1;
+  }
+
+  .phone-screen {
+    width: 100%;
+    height: 100%;
+    background: var(--sabbia);
+    border-radius: 42px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Status bar (orologio + batteria) */
+  .status-bar {
+    height: 44px;
+    padding: 12px 28px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 14px;
+    color: white;
+    position: relative;
+    z-index: 10;
+    flex-shrink: 0;
+  }
+  .status-bar.dark { color: var(--testo); }
+  .status-icons { display: flex; gap: 6px; align-items: center; }
+  .status-icons svg { display: block; }
+
+  .notch {
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 110px; height: 30px;
+    background: #1a1410;
+    border-radius: 0 0 18px 18px;
+    z-index: 20;
+  }
+
+  /* Screens */
+  .screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(20px);
+    transition: opacity 0.35s ease, transform 0.35s ease;
+  }
+  .screen.active {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0);
+  }
+
+  /* ============ HOME / MAPPA ============ */
+
+  .home-header {
+    background: var(--cupola);
+    padding: 0 20px 16px;
+    color: white;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .home-header::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; left: 0; right: 0;
+    height: 1px;
+    background: var(--cupola-deep);
+  }
+  .home-titlebar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 8px;
+  }
+  .home-title {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 16px;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+  }
+  .home-title em {
+    font-style: normal;
+    font-weight: 600;
+    opacity: 0.85;
+    margin-left: 4px;
+  }
+  .home-actions { display: flex; gap: 14px; align-items: center; }
+  .icon-btn {
+    width: 32px; height: 32px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: white;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    transition: background 0.2s;
+  }
+  .icon-btn:hover { background: rgba(255,255,255,0.1); }
+  .icon-btn:active { background: rgba(255,255,255,0.18); transform: scale(0.95); }
+
+  .map-area {
+    flex: 1;
+    background: var(--sabbia);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .home-panel {
+    position: absolute;
+    bottom: 100px; left: 16px; right: 16px;
+    background: var(--sabbia-light);
+    border-radius: var(--raggio-lg);
+    padding: 16px 18px;
+    box-shadow: var(--ombra-medium);
+    border: 1px solid var(--linea);
+    animation: slideUpPanel 0.4s ease-out;
+    z-index: 5;
+  }
+  @keyframes slideUpPanel {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .panel-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  .panel-mini-chart {
+    width: 44px; height: 44px;
+    flex-shrink: 0;
+  }
+  .panel-info { flex: 1; }
+  .panel-name {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--testo);
+    line-height: 1.1;
+  }
+  .panel-status {
+    font-size: 13px;
+    color: var(--testo-muto);
+    margin-top: 2px;
+  }
+  .panel-arrow {
+    color: var(--testo-muto);
+    cursor: pointer;
+  }
+  .panel-actions { display: flex; gap: 8px; }
+  .btn {
+    flex: 1;
+    border: none;
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: transform 0.1s, filter 0.2s;
+    letter-spacing: 0.01em;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-secondary {
+    background: var(--sabbia-warm);
+    color: var(--cupola-deep);
+  }
+  .btn-secondary:hover { filter: brightness(0.97); }
+  .btn-primary {
+    background: var(--cupola);
+    color: white;
+  }
+  .btn-primary:hover { filter: brightness(1.05); }
+
+  /* ============ PROFILE ============ */
+
+  .profile-header {
+    background: var(--cupola);
+    color: white;
+    padding: 0 20px 28px;
+    flex-shrink: 0;
+    position: relative;
+    text-align: center;
+  }
+  .profile-titlebar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 8px;
+    margin-bottom: 18px;
+  }
+  .profile-name {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: 0.04em;
+  }
+  .profile-name b { font-weight: 800; }
+
+  .avatar-wrapper {
+    width: 110px; height: 110px;
+    border-radius: 50%;
+    background: var(--ocra-light);
+    margin: 0 auto;
+    border: 4px solid var(--sabbia);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .profile-status {
+    margin-top: 14px;
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    opacity: 0.92;
+  }
+  .profile-circoscrizione {
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    opacity: 0.75;
+    margin-top: 2px;
+  }
+  .profile-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 22px;
+    margin-top: 8px;
+  }
+
+  .profile-body {
+    flex: 1;
+    background: var(--sabbia);
+    padding: 24px 20px 110px;
+    overflow-y: auto;
+    position: relative;
+  }
+
+  .progress-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 28px;
+  }
+
+  .progress-ring {
+    width: 180px; height: 180px;
+    position: relative;
+  }
+  .progress-ring svg {
+    transform: rotate(-90deg);
+    width: 100%; height: 100%;
+  }
+  .progress-ring-bg {
+    stroke: rgba(154, 52, 41, 0.12);
+    stroke-width: 14;
+    fill: none;
+  }
+  .progress-ring-fill {
+    stroke: url(#ringGrad);
+    stroke-width: 14;
+    fill: none;
+    stroke-linecap: round;
+    stroke-dasharray: 502;
+    stroke-dashoffset: 301;
+    transition: stroke-dashoffset 1.2s ease-out;
+  }
+  .progress-ring.animate .progress-ring-fill {
+    animation: drawRing 1.4s ease-out forwards;
+  }
+  @keyframes drawRing {
+    from { stroke-dashoffset: 502; }
+    to { stroke-dashoffset: 301; }
+  }
+  .progress-center {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+  }
+  .progress-number {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 44px;
+    color: var(--testo);
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .progress-label {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 18px;
+    color: var(--cupola);
+    margin-top: 2px;
+  }
+  .progress-percent {
+    font-size: 12px;
+    color: var(--testo-muto);
+    margin-top: 4px;
+    letter-spacing: 0.05em;
+  }
+
+  .badges {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .badge {
+    background: var(--sabbia-light);
+    border: 1px solid var(--linea);
+    border-radius: var(--raggio-md);
+    padding: 16px 8px;
+    text-align: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+  }
+  .badge:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--ombra-soft);
+  }
+  .badge-icon {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    margin: 0 auto 8px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .badge-1 .badge-icon { background: var(--verde-light); color: var(--verde); }
+  .badge-2 .badge-icon { background: var(--ocra-light); color: var(--ocra-dark); }
+  .badge-3 .badge-icon { background: var(--rosso-attesa-light); color: var(--cupola); }
+  .badge-name {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--testo);
+    line-height: 1.2;
+  }
+
+  .section-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--cupola-deep);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1; height: 1px;
+    background: var(--linea);
+  }
+
+  .mission-card {
+    background: var(--sabbia-light);
+    border: 1px solid var(--linea);
+    border-radius: var(--raggio-md);
+    padding: 14px 16px;
+    margin-bottom: 12px;
+  }
+  .mission-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 10px;
+    gap: 10px;
+  }
+  .mission-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--testo);
+    line-height: 1.25;
+  }
+  .mission-reward {
+    background: var(--ocra);
+    color: var(--testo);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 8px;
+    flex-shrink: 0;
+    font-family: var(--font-display);
+  }
+  .mission-progress {
+    height: 6px;
+    background: rgba(154, 52, 41, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 6px;
+  }
+  .mission-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--ocra-dark), var(--ocra));
+    border-radius: 3px;
+    transition: width 0.6s;
+  }
+  .mission-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--testo-muto);
+  }
+
+  /* ============ SEGNALAZIONI ============ */
+
+  .seg-header {
+    background: var(--cupola);
+    color: white;
+    padding: 0 20px 14px;
+    flex-shrink: 0;
+  }
+  .seg-titlebar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 8px;
+    margin-bottom: 6px;
+  }
+  .seg-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: 0.04em;
+  }
+  .seg-title b { font-weight: 800; }
+  .seg-subtitle {
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    opacity: 0.85;
+  }
+  .seg-subtitle b {
+    font-weight: 700;
+    opacity: 1;
+  }
+
+  .seg-tabs {
+    background: var(--cupola);
+    padding: 0 16px 16px;
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .seg-tab {
+    flex: 1;
+    background: var(--sabbia-warm);
+    color: var(--cupola-deep);
+    border: none;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .seg-tab.active {
+    background: var(--sabbia-light);
+    color: var(--cupola-deep);
+    box-shadow: 0 2px 0 rgba(0,0,0,0.08);
+  }
+  .seg-tab:not(.active) {
+    background: rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.7);
+  }
+
+  .seg-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 16px 110px;
+  }
+
+  .seg-card {
+    background: var(--sabbia-light);
+    border-radius: var(--raggio-md);
+    padding: 12px;
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+    border: 1px solid var(--linea);
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.2s;
+  }
+  .seg-card:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--ombra-soft);
+  }
+  .seg-photo {
+    width: 80px; height: 80px;
+    border-radius: var(--raggio-sm);
+    flex-shrink: 0;
+    overflow: hidden;
+    background: var(--sabbia-warm);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .seg-photo svg { width: 100%; height: 100%; display: block; }
+  .seg-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .seg-cat-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--testo);
+    line-height: 1.2;
+  }
+  .seg-date {
+    font-size: 12px;
+    color: var(--testo-muto);
+    margin-top: 4px;
+  }
+  .seg-status {
+    align-self: flex-start;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 8px;
+    margin-top: 8px;
+    font-family: var(--font-body);
+  }
+  .seg-status.in-lavorazione {
+    background: var(--ocra-light);
+    color: #6B4A00;
+  }
+  .seg-status.risolto {
+    background: var(--verde-light);
+    color: #2D5022;
+  }
+  .seg-status.in-attesa {
+    background: var(--rosso-attesa-light);
+    color: var(--cupola-deep);
+  }
+
+  /* Form nuova segnalazione */
+  .seg-form {
+    flex: 1;
+    overflow-y: auto;
+    padding: 18px 20px 110px;
+  }
+  .form-group { margin-bottom: 18px; }
+  .form-label {
+    display: block;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--cupola-deep);
+    margin-bottom: 8px;
+  }
+  .form-input, .form-textarea {
+    width: 100%;
+    background: var(--sabbia-light);
+    border: 1px solid var(--linea-forte);
+    border-radius: var(--raggio-md);
+    padding: 12px 14px;
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--testo);
+    outline: none;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .form-input:focus, .form-textarea:focus {
+    border-color: var(--cupola);
+    background: white;
+  }
+  .form-textarea { resize: none; min-height: 90px; line-height: 1.5; }
+
+  .cat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .cat-btn {
+    background: var(--sabbia-light);
+    border: 1px solid var(--linea);
+    border-radius: var(--raggio-sm);
+    padding: 12px 6px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .cat-btn:hover { border-color: var(--linea-forte); }
+  .cat-btn.selected {
+    background: var(--cupola);
+    border-color: var(--cupola-deep);
+    color: white;
+  }
+  .cat-btn-icon { width: 24px; height: 24px; }
+  .cat-btn-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: inherit;
+  }
+  .cat-btn:not(.selected) .cat-btn-label { color: var(--testo-muto); }
+
+  .photo-upload {
+    background: var(--sabbia-light);
+    border: 2px dashed var(--linea-forte);
+    border-radius: var(--raggio-md);
+    padding: 24px;
+    text-align: center;
+    color: var(--testo-muto);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .photo-upload:hover {
+    border-color: var(--cupola);
+    background: white;
+  }
+  .photo-upload-icon {
+    width: 32px; height: 32px;
+    margin: 0 auto 8px;
+  }
+  .photo-upload-text {
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .form-submit {
+    width: 100%;
+    background: var(--cupola);
+    color: white;
+    border: none;
+    padding: 14px;
+    border-radius: var(--raggio-md);
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    transition: filter 0.2s, transform 0.1s;
+    box-shadow: var(--ombra-soft);
+  }
+  .form-submit:hover { filter: brightness(1.05); }
+  .form-submit:active { transform: scale(0.98); }
+
+  /* ============ LEADERBOARD ============ */
+
+  .lb-header {
+    background: var(--cupola);
+    color: white;
+    padding: 0 20px 18px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .lb-titlebar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 8px;
+    margin-bottom: 12px;
+  }
+  .lb-title {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 20px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .lb-podium {
+    display: flex;
+    justify-content: center;
+    align-items: end;
+    gap: 12px;
+    padding: 12px 0 0;
+  }
+  .podium-spot {
+    text-align: center;
+    flex: 1;
+    max-width: 92px;
+  }
+  .podium-medal {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    margin: 0 auto 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 18px;
+    border: 3px solid var(--sabbia);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+  }
+  .podium-1 .podium-medal { background: linear-gradient(135deg, #F7D666, #C68B2C); color: var(--testo); width: 56px; height: 56px; font-size: 22px; }
+  .podium-2 .podium-medal { background: linear-gradient(135deg, #E8E0D0, #B5A88E); color: var(--testo); }
+  .podium-3 .podium-medal { background: linear-gradient(135deg, #D89776, #9F5D3F); color: white; }
+
+  .podium-name {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 13px;
+    color: white;
+    line-height: 1.1;
+  }
+  .podium-score {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 18px;
+    color: var(--ocra-light);
+    margin-top: 4px;
+  }
+  .podium-bar {
+    background: rgba(255,255,255,0.15);
+    border-radius: 8px 8px 0 0;
+    margin-top: 8px;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-bottom: none;
+  }
+  .podium-1 .podium-bar { height: 32px; background: rgba(232, 177, 75, 0.3); }
+  .podium-2 .podium-bar { height: 22px; }
+  .podium-3 .podium-bar { height: 16px; }
+
+  .lb-list {
+    flex: 1;
+    background: var(--sabbia);
+    padding: 16px;
+    overflow-y: auto;
+    padding-bottom: 110px;
+  }
+
+  .lb-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--sabbia-light);
+    border: 1px solid var(--linea);
+    padding: 12px 14px;
+    border-radius: var(--raggio-md);
+    margin-bottom: 8px;
+    transition: transform 0.15s;
+    cursor: pointer;
+  }
+  .lb-row:hover { transform: translateX(2px); }
+  .lb-rank {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--testo-muto);
+    width: 28px;
+    text-align: center;
+  }
+  .lb-name {
+    flex: 1;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--testo);
+  }
+  .lb-trend {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 7px;
+    border-radius: 6px;
+    margin-right: 4px;
+  }
+  .lb-trend.up { background: var(--verde-light); color: #2D5022; }
+  .lb-trend.down { background: var(--rosso-attesa-light); color: var(--cupola-deep); }
+  .lb-trend.same { background: var(--linea); color: var(--testo-muto); }
+  .lb-score {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 16px;
+    color: var(--cupola-deep);
+    min-width: 36px;
+    text-align: right;
+  }
+
+  .lb-row.you {
+    background: var(--cupola);
+    border-color: var(--cupola-deep);
+  }
+  .lb-row.you .lb-rank,
+  .lb-row.you .lb-name,
+  .lb-row.you .lb-score { color: white; }
+  .lb-row.you .lb-name b { color: var(--ocra-light); }
+
+  .lb-cta {
+    background: linear-gradient(135deg, var(--ocra), var(--ocra-dark));
+    color: var(--testo);
+    border-radius: var(--raggio-md);
+    padding: 14px 16px;
+    margin-top: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.2s;
+  }
+  .lb-cta:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--ombra-medium);
+  }
+  .lb-cta-icon {
+    width: 36px; height: 36px;
+    background: rgba(255,255,255,0.4);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .lb-cta-text {
+    flex: 1;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 13px;
+    line-height: 1.3;
+  }
+  .lb-cta-text b { font-weight: 800; }
+
+  /* ============ BOTTOM NAV ============ */
+
+  .bottom-nav {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 88px;
+    background: var(--cupola);
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-start;
+    padding: 12px 12px 30px;
+    z-index: 50;
+  }
+  .nav-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: rgba(255,255,255,0.65);
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 4px;
+    border-radius: var(--raggio-sm);
+    transition: color 0.2s;
+  }
+  .nav-btn.active { color: white; }
+  .nav-btn:hover { color: white; }
+  .nav-btn-icon {
+    width: 24px; height: 24px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .nav-btn-segnala {
+    flex: 0 0 auto;
+    margin-top: -22px;
+  }
+  .nav-btn-segnala .nav-btn-icon {
+    width: 56px; height: 56px;
+    background: var(--sabbia);
+    color: var(--cupola);
+    border-radius: 50%;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.25), 0 0 0 4px var(--cupola);
+    transition: transform 0.2s;
+  }
+  .nav-btn-segnala:hover .nav-btn-icon {
+    transform: scale(1.05);
+  }
+  .nav-btn-segnala:active .nav-btn-icon {
+    transform: scale(0.95);
+  }
+  .nav-btn-segnala .nav-btn-icon svg { width: 28px; height: 28px; }
+
+  /* ============ DRAWER (hamburger menu) ============ */
+
+  .drawer-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(46, 24, 16, 0);
+    z-index: 90;
+    pointer-events: none;
+    transition: background 0.3s;
+  }
+  .drawer-overlay.open {
+    background: rgba(46, 24, 16, 0.5);
+    pointer-events: auto;
+  }
+
+  .drawer {
+    position: absolute;
+    top: 0; right: 0;
+    height: 100%;
+    width: 280px;
+    background: var(--sabbia);
+    z-index: 100;
+    transform: translateX(100%);
+    transition: transform 0.3s ease-out;
+    display: flex;
+    flex-direction: column;
+    box-shadow: -10px 0 40px rgba(0,0,0,0.2);
+  }
+  .drawer.open { transform: translateX(0); }
+  .drawer-header {
+    background: var(--cupola);
+    color: white;
+    padding: 60px 24px 24px;
+  }
+  .drawer-greeting {
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    opacity: 0.7;
+  }
+  .drawer-name {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 22px;
+    margin-top: 4px;
+  }
+  .drawer-nav {
+    flex: 1;
+    padding: 16px 0;
+  }
+  .drawer-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 24px;
+    color: var(--testo);
+    cursor: pointer;
+    border-left: 3px solid transparent;
+    transition: background 0.2s, border-color 0.2s;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 15px;
+  }
+  .drawer-item:hover {
+    background: var(--sabbia-light);
+    border-left-color: var(--cupola);
+  }
+  .drawer-item.active {
+    background: var(--sabbia-light);
+    border-left-color: var(--cupola);
+    color: var(--cupola-deep);
+  }
+  .drawer-item-icon {
+    width: 22px; height: 22px;
+    color: var(--cupola);
+  }
+
+  .drawer-footer {
+    padding: 18px 24px;
+    border-top: 1px solid var(--linea);
+    font-size: 11px;
+    color: var(--testo-muto);
+    line-height: 1.4;
+  }
+
+  /* ============ TOAST ============ */
+
+  .toast {
+    position: absolute;
+    bottom: 110px;
+    left: 50%;
+    transform: translateX(-50%) translateY(40px);
+    background: var(--testo);
+    color: white;
+    padding: 12px 20px;
+    border-radius: var(--raggio-md);
+    font-size: 13px;
+    font-weight: 500;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s, transform 0.3s;
+    z-index: 200;
+    white-space: nowrap;
+    box-shadow: var(--ombra-strong);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  .toast-icon { color: var(--verde-light); }
+
+  /* ============ MOBILE FALLBACK ============ */
+
+  @media (max-width: 430px) {
+    body { padding: 0; }
+    .phone-frame {
+      width: 100vw; height: 100vh;
+      max-height: 100vh;
+      border-radius: 0;
+      padding: 0;
+      box-shadow: none;
+    }
+    .phone-screen { border-radius: 0; }
+    .notch { display: none; }
+  }
+
+  /* Scrollbar nascosta ma funzionante */
+  .seg-list::-webkit-scrollbar,
+  .lb-list::-webkit-scrollbar,
+  .profile-body::-webkit-scrollbar,
+  .seg-form::-webkit-scrollbar { width: 0; }
+
+  /* ============ LEAFLET MAP INTEGRATION ============ */
+  #real-map {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: var(--sabbia);
+  }
+  #real-map .leaflet-control-attribution {
+    background: rgba(248, 235, 211, 0.8);
+    font-size: 9px;
+    color: var(--testo-muto);
+  }
+  #real-map .leaflet-control-zoom {
+    margin-top: 12px;
+    margin-left: 12px;
+    border: none !important;
+  }
+  #real-map .leaflet-control-zoom a {
+    background: var(--sabbia-light);
+    color: var(--cupola-deep);
+    border: 1px solid var(--linea-forte) !important;
+    font-family: var(--font-display);
+    font-weight: 700;
+  }
+  #real-map .leaflet-control-zoom a:hover {
+    background: var(--sabbia-warm);
+  }
+
+  .leaflet-popup-content-wrapper {
+    background: var(--sabbia-light);
+    color: var(--testo);
+    border-radius: var(--raggio-md);
+    border: 1px solid var(--linea-forte);
+    box-shadow: var(--ombra-medium);
+    font-family: var(--font-body);
+  }
+  .leaflet-popup-content { margin: 12px 14px; font-size: 13px; line-height: 1.4; }
+  .leaflet-popup-content strong {
+    display: block; font-family: var(--font-display); font-weight: 700;
+    font-size: 15px; margin-bottom: 4px; color: var(--cupola-deep);
+  }
+  .leaflet-popup-content small {
+    display: block; margin-top: 6px;
+    font-size: 10px; letter-spacing: 0.05em; color: var(--testo-muto);
+  }
+  .leaflet-popup-tip { background: var(--sabbia-light); border: 1px solid var(--linea-forte); }
+  .leaflet-container a.leaflet-popup-close-button {
+    color: var(--testo-muto); font-size: 18px;
+  }
+
+  /* Floating overall pill on map */
+  .map-overlay-pill {
+    position: absolute;
+    top: 14px; right: 14px;
+    z-index: 5;
+    background: var(--testo);
+    color: white;
+    padding: 6px 12px 6px 28px;
+    border-radius: 14px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 12px;
+    box-shadow: var(--ombra-medium);
+  }
+  .map-overlay-pill::before {
+    content: '';
+    position: absolute;
+    left: 8px; top: 50%;
+    transform: translateY(-50%);
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--ocra);
+  }
+
+  /* Help tooltip on map */
+  .map-help-tip {
+    position: absolute;
+    bottom: 200px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 5;
+    background: rgba(44, 24, 16, 0.92);
+    color: white;
+    padding: 8px 14px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    pointer-events: none;
+    transition: opacity 0.4s;
+    white-space: nowrap;
+  }
+  .map-help-tip.hidden { opacity: 0; }
+  .map-help-tip::after {
+    content: '';
+    position: absolute;
+    bottom: -5px; left: 50%;
+    transform: translateX(-50%) rotate(45deg);
+    width: 8px; height: 8px;
+    background: rgba(44, 24, 16, 0.92);
+  }
+
+  /* Auth/welcome screen */
+  .seg-empty {
+    text-align: center;
+    padding: 40px 24px;
+    color: var(--testo-muto);
+  }
+  .seg-empty-icon {
+    width: 56px; height: 56px;
+    margin: 0 auto 14px;
+    background: var(--sabbia-warm);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--cupola);
+  }
+  .seg-empty-text {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .seg-empty-text b {
+    font-family: var(--font-display);
+    font-weight: 700;
+    color: var(--testo);
+    display: block;
+    margin-bottom: 4px;
+    font-size: 16px;
+  }
+
+  /* Cat icon colors when selected use cat-specific tint */
+  .cat-btn[data-cat="buca"].selected { background: var(--cupola); }
+  .cat-btn[data-cat="luce"].selected { background: var(--ocra-dark); }
+  .cat-btn[data-cat="rifiuti"].selected { background: var(--verde); }
+  .cat-btn[data-cat="segnaletica"].selected { background: var(--mare-deep); }
+  .cat-btn[data-cat="verde"].selected { background: var(--verde); }
+  .cat-btn[data-cat="marciapiede"].selected { background: var(--terracotta); }
+  .cat-btn[data-cat="sosta"].selected { background: var(--rosso-attesa); }
+  .cat-btn[data-cat="tombino"].selected { background: #5a4a8a; }
+  .cat-btn[data-cat="altro"].selected { background: var(--testo-muto); }
+
+  /* Status bar dark variant for screens with light header */
+  .home-header { z-index: 6; }
+  .home-header, .seg-header, .lb-header, .profile-header { z-index: 6; }
+
+  /* Loading state for streets */
+  .street-loading {
+    background: var(--sabbia-warm);
+    color: var(--cupola-deep);
+    font-size: 11px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    text-align: center;
+    margin-top: 6px;
+    font-style: italic;
+  }
+  .street-loading.ok { background: var(--verde-light); color: #2D5022; font-style: normal; }
+  .street-loading.err { background: var(--rosso-attesa-light); color: var(--cupola-deep); }
+
+</style>
+</head>
+<body>
+
+<div class="phone-frame">
+  <div class="phone-screen">
+    <div class="notch"></div>
+
+    <!-- ============ HOME / MAPPA ============ -->
+    <div class="screen active" id="screen-home">
+      <div class="status-bar">
+        <span>9:41</span>
+        <div class="status-icons">
+          <svg width="16" height="10" viewBox="0 0 16 10" fill="currentColor"><rect x="0" y="6" width="2" height="4" rx="0.5"/><rect x="3" y="4" width="2" height="6" rx="0.5"/><rect x="6" y="2" width="2" height="8" rx="0.5"/><rect x="9" y="0" width="2" height="10" rx="0.5"/></svg>
+          <svg width="14" height="10" viewBox="0 0 14 10" fill="currentColor"><path d="M7 9.5C3.5 9.5 1 7 0.5 6.5L1.5 5.5C2 6 4 8 7 8s5-2 5.5-2.5L13.5 6.5c-0.5 0.5-3 3-6.5 3z"/><circle cx="7" cy="6.5" r="1.2"/></svg>
+          <svg width="22" height="11" viewBox="0 0 22 11" fill="none" stroke="currentColor" stroke-width="0.8"><rect x="0.5" y="1" width="18" height="9" rx="2"/><rect x="2" y="2.5" width="13" height="6" rx="1" fill="currentColor"/><rect x="19.5" y="3.5" width="1.5" height="4" rx="0.5" fill="currentColor"/></svg>
+        </div>
+      </div>
+
+      <div class="home-header">
+        <div class="home-titlebar">
+          <div class="home-title">Habitat <em>Oreto-Stazione</em></div>
+          <div class="home-actions">
+            <button class="icon-btn" aria-label="Notifiche">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.5C12.5 3.5 14.5 5.5 14.5 8v3l1.5 1.5h-12L5.5 11V8c0-2.5 2-4.5 4.5-4.5z"/><path d="M8.5 15.5c0 0.8 0.7 1.5 1.5 1.5s1.5-0.7 1.5-1.5"/></svg>
+            </button>
+            <button class="icon-btn" aria-label="Menu" onclick="openDrawer()">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="7" x2="18" y2="7"/><line x1="4" y1="11" x2="18" y2="11"/><line x1="4" y1="15" x2="18" y2="15"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="map-area">
+        <div id="real-map"></div>
+        <div class="map-overlay-pill" id="map-pill">Oreto-Stazione · 2,90 km²</div>
+        <div class="map-help-tip" id="map-help">Tocca dentro il quartiere per segnalare</div>
+
+        <!-- Bottom info panel -->
+        <div class="home-panel">
+          <div class="panel-row">
+            <svg class="panel-mini-chart" viewBox="0 0 44 44">
+              <circle cx="22" cy="22" r="18" fill="none" stroke="rgba(154,52,41,0.15)" stroke-width="5"/>
+              <circle cx="22" cy="22" r="18" fill="none" stroke="#C66647" stroke-width="5" stroke-dasharray="113" stroke-dashoffset="68" transform="rotate(-90 22 22)" stroke-linecap="round" id="panel-ring-fill"/>
+              <text x="22" y="26" text-anchor="middle" font-family="Bricolage Grotesque" font-weight="800" font-size="13" fill="#2C1810" id="panel-ring-text">0</text>
+            </svg>
+            <div class="panel-info">
+              <div class="panel-name">Oreto-Stazione</div>
+              <div class="panel-status" id="panel-status">Quartiere 3 di Palermo · <span id="panel-count">0</span> segnalazioni</div>
+            </div>
+            <svg class="panel-arrow" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 4l6 5-6 5"/></svg>
+          </div>
+          <div class="panel-actions">
+            <button class="btn btn-secondary" onclick="navigateTo('segnalazioni')">Vedi segnalazioni</button>
+            <button class="btn btn-primary" onclick="navigateTo('segnalazioni'); switchSegTab('nuova');">Nuova segnalazione</button>
+          </div>
+        </div>
+      </div>
+
+      <nav class="bottom-nav">
+        <button class="nav-btn active" onclick="navigateTo('home')">
+          <span class="nav-btn-icon">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10l8-7 8 7v9a2 2 0 0 1-2 2h-3v-6h-6v6H5a2 2 0 0 1-2-2v-9z"/></svg>
+          </span>
+          Home
+        </button>
+        <button class="nav-btn nav-btn-segnala" onclick="navigateTo('segnalazioni'); switchSegTab('nuova');">
+          <span class="nav-btn-icon">
+            <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="14" y1="6" x2="14" y2="22"/><line x1="6" y1="14" x2="22" y2="14"/></svg>
+          </span>
+        </button>
+        <button class="nav-btn" onclick="navigateTo('profile')">
+          <span class="nav-btn-icon">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="8" r="3.5"/><path d="M4 19c0-3.5 3-6 7-6s7 2.5 7 6"/></svg>
+          </span>
+          Profilo
+        </button>
+      </nav>
+    </div>
+
+    <!-- ============ PROFILE ============ -->
+    <div class="screen" id="screen-profile">
+      <div class="status-bar">
+        <span>9:41</span>
+        <div class="status-icons">
+          <svg width="16" height="10" viewBox="0 0 16 10" fill="currentColor"><rect x="0" y="6" width="2" height="4" rx="0.5"/><rect x="3" y="4" width="2" height="6" rx="0.5"/><rect x="6" y="2" width="2" height="8" rx="0.5"/><rect x="9" y="0" width="2" height="10" rx="0.5"/></svg>
+          <svg width="14" height="10" viewBox="0 0 14 10" fill="currentColor"><path d="M7 9.5C3.5 9.5 1 7 0.5 6.5L1.5 5.5C2 6 4 8 7 8s5-2 5.5-2.5L13.5 6.5c-0.5 0.5-3 3-6.5 3z"/><circle cx="7" cy="6.5" r="1.2"/></svg>
+          <svg width="22" height="11" viewBox="0 0 22 11" fill="none" stroke="currentColor" stroke-width="0.8"><rect x="0.5" y="1" width="18" height="9" rx="2"/><rect x="2" y="2.5" width="13" height="6" rx="1" fill="currentColor"/><rect x="19.5" y="3.5" width="1.5" height="4" rx="0.5" fill="currentColor"/></svg>
+        </div>
+      </div>
+
+      <div class="profile-header">
+        <div class="profile-titlebar">
+          <button class="icon-btn" onclick="navigateTo('home')" aria-label="Indietro">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 5l-7 6 7 6"/></svg>
+          </button>
+          <div class="profile-name">VINCENZA <b>ZANCA</b></div>
+          <button class="icon-btn" aria-label="Menu" onclick="openDrawer()">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="7" x2="18" y2="7"/><line x1="4" y1="11" x2="18" y2="11"/><line x1="4" y1="15" x2="18" y2="15"/></svg>
+          </button>
+        </div>
+
+        <div class="avatar-wrapper">
+          <svg viewBox="0 0 110 110" width="110" height="110">
+            <rect width="110" height="110" fill="#F4D08A"/>
+            <ellipse cx="55" cy="48" rx="22" ry="26" fill="#E8B5A8"/>
+            <path d="M30 48 Q30 22 55 22 Q80 22 80 48 Q80 38 70 32 Q60 26 55 28 Q50 26 40 32 Q30 38 30 48 Z" fill="#3D2418"/>
+            <path d="M28 50 Q26 70 36 78 L40 60 Q34 55 28 50 Z" fill="#3D2418"/>
+            <path d="M82 50 Q84 70 74 78 L70 60 Q76 55 82 50 Z" fill="#3D2418"/>
+            <ellipse cx="44" cy="52" rx="6" ry="4" fill="none" stroke="#3D2418" stroke-width="1.8"/>
+            <ellipse cx="66" cy="52" rx="6" ry="4" fill="none" stroke="#3D2418" stroke-width="1.8"/>
+            <line x1="50" y1="52" x2="60" y2="52" stroke="#3D2418" stroke-width="1.5"/>
+            <circle cx="44" cy="52" r="1.5" fill="#2C1810"/>
+            <circle cx="66" cy="52" r="1.5" fill="#2C1810"/>
+            <path d="M48 70 Q55 75 62 70" fill="none" stroke="#9A3429" stroke-width="2" stroke-linecap="round"/>
+            <ellipse cx="55" cy="62" rx="3" ry="2" fill="#D89A8A" opacity="0.6"/>
+            <path d="M28 90 Q40 82 55 84 Q70 82 82 90 L82 110 L28 110 Z" fill="#9A3429"/>
+          </svg>
+        </div>
+
+        <div class="profile-status">Habitante Oreto-Stazione</div>
+        <div class="profile-circoscrizione">Circoscrizioni II e III</div>
+        <div class="profile-title">Custode del Quartiere</div>
+      </div>
+
+      <div class="profile-body">
+        <div class="progress-section">
+          <div class="progress-ring animate">
+            <svg viewBox="0 0 180 180">
+              <circle class="progress-ring-bg" cx="90" cy="90" r="80"/>
+              <circle class="progress-ring-fill" cx="90" cy="90" r="80"/>
+            </svg>
+            <div class="progress-center">
+              <div class="progress-number">850</div>
+              <div class="progress-label">PH</div>
+              <div class="progress-percent">40% al prossimo livello</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-title">Badge guadagnati</div>
+        <div class="badges">
+          <div class="badge badge-1">
+            <div class="badge-icon">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="currentColor"><path d="M11 2C6 2 3 6 3 11c0 0 4 0 6-2 2-2 2-6 2-7zm0 0c0 1 0 5 2 7 2 2 6 2 6 2 0-5-3-9-8-9zM11 11v9"/></svg>
+            </div>
+            <div class="badge-name">Custode<br>del Verde</div>
+          </div>
+          <div class="badge badge-2">
+            <div class="badge-icon">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><polygon points="14,7 9,9 8,14 13,12" fill="currentColor"/></svg>
+            </div>
+            <div class="badge-name">Esploratore<br>Urbano</div>
+          </div>
+          <div class="badge badge-3">
+            <div class="badge-icon">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 19V8l4-3 4 3v11M11 19V11l4-2 4 2v8M3 19h16"/></svg>
+            </div>
+            <div class="badge-name">Ambasciatore<br>del Rione</div>
+          </div>
+        </div>
+
+        <div class="section-title">Missioni attive</div>
+        <div class="mission-card">
+          <div class="mission-header">
+            <div class="mission-title">Segnala 3 buche su Via Oreto</div>
+            <div class="mission-reward">+150 PH</div>
+          </div>
+          <div class="mission-progress">
+            <div class="mission-fill" id="mission-1-fill" style="width: 0%"></div>
+          </div>
+          <div class="mission-meta">
+            <span id="mission-1-progress">0 di 3 completate</span>
+            <span>Scade tra 5 giorni</span>
+          </div>
+        </div>
+        <div class="mission-card">
+          <div class="mission-header">
+            <div class="mission-title">Mappa la zona Guadagna · 5 segnalazioni</div>
+            <div class="mission-reward">+200 PH</div>
+          </div>
+          <div class="mission-progress">
+            <div class="mission-fill" id="mission-2-fill" style="width: 0%"></div>
+          </div>
+          <div class="mission-meta">
+            <span id="mission-2-progress">0 di 5 completate</span>
+            <span>Scade tra 12 giorni</span>
+          </div>
+        </div>
+        <div class="mission-card">
+          <div class="mission-header">
+            <div class="mission-title">Esploratore: 3 vie diverse</div>
+            <div class="mission-reward">+100 PH</div>
+          </div>
+          <div class="mission-progress">
+            <div class="mission-fill" id="mission-3-fill" style="width: 0%"></div>
+          </div>
+          <div class="mission-meta">
+            <span id="mission-3-progress">0 di 3 vie</span>
+            <span>Sempre attiva</span>
+          </div>
+        </div>
+      </div>
+
+      <nav class="bottom-nav">
+        <button class="nav-btn" onclick="navigateTo('home')">
+          <span class="nav-btn-icon">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10l8-7 8 7v9a2 2 0 0 1-2 2h-3v-6h-6v6H5a2 2 0 0 1-2-2v-9z"/></svg>
+          </span>
+          Home
+        </button>
+        <button class="nav-btn nav-btn-segnala" onclick="navigateTo('segnalazioni'); switchSegTab('nuova');">
+          <span class="nav-btn-icon">
+            <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="14" y1="6" x2="14" y2="22"/><line x1="6" y1="14" x2="22" y2="14"/></svg>
+          </span>
+        </button>
+        <button class="nav-btn active">
+          <span class="nav-btn-icon">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="8" r="3.5"/><path d="M4 19c0-3.5 3-6 7-6s7 2.5 7 6"/></svg>
+          </span>
+          Profilo
+        </button>
+      </nav>
+    </div>
+
+    <!-- ============ SEGNALAZIONI ============ -->
+    <div class="screen" id="screen-segnalazioni">
+      <div class="status-bar">
+        <span>9:41</span>
+        <div class="status-icons">
+          <svg width="16" height="10" viewBox="0 0 16 10" fill="currentColor"><rect x="0" y="6" width="2" height="4" rx="0.5"/><rect x="3" y="4" width="2" height="6" rx="0.5"/><rect x="6" y="2" width="2" height="8" rx="0.5"/><rect x="9" y="0" width="2" height="10" rx="0.5"/></svg>
+          <svg width="14" height="10" viewBox="0 0 14 10" fill="currentColor"><path d="M7 9.5C3.5 9.5 1 7 0.5 6.5L1.5 5.5C2 6 4 8 7 8s5-2 5.5-2.5L13.5 6.5c-0.5 0.5-3 3-6.5 3z"/><circle cx="7" cy="6.5" r="1.2"/></svg>
+          <svg width="22" height="11" viewBox="0 0 22 11" fill="none" stroke="currentColor" stroke-width="0.8"><rect x="0.5" y="1" width="18" height="9" rx="2"/><rect x="2" y="2.5" width="13" height="6" rx="1" fill="currentColor"/><rect x="19.5" y="3.5" width="1.5" height="4" rx="0.5" fill="currentColor"/></svg>
+        </div>
+      </div>
+
+      <div class="seg-header">
+        <div class="seg-titlebar">
+          <button class="icon-btn" onclick="navigateTo('home')" aria-label="Indietro">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 5l-7 6 7 6"/></svg>
+          </button>
+          <div class="seg-title">VINCENZA <b>ZANCA</b></div>
+          <button class="icon-btn" aria-label="Menu" onclick="openDrawer()">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="7" x2="18" y2="7"/><line x1="4" y1="11" x2="18" y2="11"/><line x1="4" y1="15" x2="18" y2="15"/></svg>
+          </button>
+        </div>
+        <div class="seg-subtitle">UNITÀ 2 <b>LOGGIA</b></div>
+      </div>
+
+      <div class="seg-tabs">
+        <button class="seg-tab active" id="tab-list" onclick="switchSegTab('list')">Segnalazioni</button>
+        <button class="seg-tab" id="tab-nuova" onclick="switchSegTab('nuova')">Fai segnalazione</button>
+      </div>
+
+      <div class="seg-list" id="seg-list-view">
+        <div class="seg-empty" id="seg-empty">
+          <div class="seg-empty-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+              <circle cx="12" cy="10" r="3"/>
+            </svg>
+          </div>
+          <div class="seg-empty-text">
+            <b>Ancora nessuna segnalazione</b>
+            Tocca sulla mappa nel quartiere<br/>per inviare la prima.
+          </div>
+        </div>
+        <div id="seg-cards-container"></div>
+      </div>
+
+      <div class="seg-form" id="seg-form-view" style="display: none;">
+        <div class="form-group">
+          <label class="form-label">Categoria</label>
+          <div class="cat-grid">
+            <div class="cat-btn" data-cat="buca">
+              <svg class="cat-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="14" rx="7" ry="3"/><path d="M5 14c0 3 3 6 7 6s7-3 7-6"/><path d="M9 9l3 4 3-4"/></svg>
+              <span class="cat-btn-label">Buca</span>
+            </div>
+            <div class="cat-btn" data-cat="luce">
+              <svg class="cat-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v3M5 6l2 2M19 6l-2 2M3 13h3M18 13h3M12 21v-3M8 13a4 4 0 1 1 8 0 4 4 0 0 1-2 3.5V18h-4v-1.5A4 4 0 0 1 8 13z"/></svg>
+              <span class="cat-btn-label">Lampione</span>
+            </div>
+            <div class="cat-btn" data-cat="rifiuti">
+              <svg class="cat-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14l-1 13H6L5 7zM9 7V4h6v3M9 11v6M15 11v6"/></svg>
+              <span class="cat-btn-label">Rifiuti</span>
+            </div>
+            <div class="cat-btn" data-cat="segnaletica">
+              <svg class="cat-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M5 5h11l3 3-3 3H5z"/></svg>
+              <span class="cat-btn-label">Segnaletica</span>
+            </div>
+            <div class="cat-btn" data-cat="verde">
+              <svg class="cat-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C7 2 4 6 4 11c0 0 4 0 6-2 2-2 2-6 2-7zm0 0c0 1 0 5 2 7 2 2 6 2 6 2 0-5-3-9-8-9zM12 11v11"/></svg>
+              <span class="cat-btn-label">Verde</span>
+            </div>
+            <div class="cat-btn" data-cat="marciapiede">
+              <svg class="cat-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 8h18v8H3zM3 11h18M3 14h18M7 8v8M11 8v8M15 8v8M19 8v8"/></svg>
+              <span class="cat-btn-label">Marciapiede</span>
+            </div>
+            <div class="cat-btn" data-cat="sosta">
+              <svg class="cat-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 8h4a3 3 0 0 1 0 6H9zM9 14v4"/></svg>
+              <span class="cat-btn-label">Sosta</span>
+            </div>
+            <div class="cat-btn" data-cat="tombino">
+              <svg class="cat-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M5 9h14M5 12h14M5 15h14M9 5v14M12 5v14M15 5v14" opacity="0.7"/></svg>
+              <span class="cat-btn-label">Tombino</span>
+            </div>
+            <div class="cat-btn" data-cat="altro">
+              <svg class="cat-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 1 1 5 2c-1 1-2 1-2 3M12 17h.01"/></svg>
+              <span class="cat-btn-label">Altro</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Descrizione</label>
+          <textarea class="form-textarea" id="form-desc" placeholder="Descrivi il problema in dettaglio…"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Via / Piazza</label>
+          <input type="text" class="form-input" id="form-street" list="streets-datalist" autocomplete="off" placeholder="Inizia a digitare il nome…">
+          <datalist id="streets-datalist"></datalist>
+          <div class="street-loading" id="streets-status">↻ Carico le strade dal quartiere…</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Numero civico (opzionale)</label>
+          <input type="text" class="form-input" id="form-civic" placeholder="es. 142">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Posizione precisa</label>
+          <input type="text" class="form-input" id="form-coords" placeholder="Tocca sulla mappa per impostare la posizione" readonly>
+          <button type="button" id="btn-pick-location" style="margin-top:8px;background:var(--sabbia-warm);color:var(--cupola-deep);border:none;padding:10px 14px;border-radius:10px;font-family:var(--font-body);font-weight:600;font-size:13px;cursor:pointer;width:100%;display:flex;align-items:center;justify-content:center;gap:6px;" onclick="navigateTo('home'); showToast('Tocca sulla mappa dentro Oreto-Stazione');">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            Scegli posizione sulla mappa
+          </button>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Foto</label>
+          <div class="photo-upload">
+            <svg class="photo-upload-icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="26" height="20" rx="2"/><circle cx="16" cy="17" r="6"/><path d="M11 7l2-3h6l2 3"/></svg>
+            <div class="photo-upload-text">Tocca per scattare o caricare</div>
+          </div>
+        </div>
+
+        <button class="form-submit" onclick="submitSegnalazione()">Invia segnalazione</button>
+      </div>
+
+      <nav class="bottom-nav">
+        <button class="nav-btn" onclick="navigateTo('home')">
+          <span class="nav-btn-icon">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10l8-7 8 7v9a2 2 0 0 1-2 2h-3v-6h-6v6H5a2 2 0 0 1-2-2v-9z"/></svg>
+          </span>
+          Home
+        </button>
+        <button class="nav-btn nav-btn-segnala active" onclick="switchSegTab('nuova')">
+          <span class="nav-btn-icon">
+            <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="14" y1="6" x2="14" y2="22"/><line x1="6" y1="14" x2="22" y2="14"/></svg>
+          </span>
+        </button>
+        <button class="nav-btn" onclick="navigateTo('profile')">
+          <span class="nav-btn-icon">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="8" r="3.5"/><path d="M4 19c0-3.5 3-6 7-6s7 2.5 7 6"/></svg>
+          </span>
+          Profilo
+        </button>
+      </nav>
+    </div>
+
+    <!-- ============ LEADERBOARD ============ -->
+    <div class="screen" id="screen-leaderboard">
+      <div class="status-bar">
+        <span>9:41</span>
+        <div class="status-icons">
+          <svg width="16" height="10" viewBox="0 0 16 10" fill="currentColor"><rect x="0" y="6" width="2" height="4" rx="0.5"/><rect x="3" y="4" width="2" height="6" rx="0.5"/><rect x="6" y="2" width="2" height="8" rx="0.5"/><rect x="9" y="0" width="2" height="10" rx="0.5"/></svg>
+          <svg width="14" height="10" viewBox="0 0 14 10" fill="currentColor"><path d="M7 9.5C3.5 9.5 1 7 0.5 6.5L1.5 5.5C2 6 4 8 7 8s5-2 5.5-2.5L13.5 6.5c-0.5 0.5-3 3-6.5 3z"/><circle cx="7" cy="6.5" r="1.2"/></svg>
+          <svg width="22" height="11" viewBox="0 0 22 11" fill="none" stroke="currentColor" stroke-width="0.8"><rect x="0.5" y="1" width="18" height="9" rx="2"/><rect x="2" y="2.5" width="13" height="6" rx="1" fill="currentColor"/><rect x="19.5" y="3.5" width="1.5" height="4" rx="0.5" fill="currentColor"/></svg>
+        </div>
+      </div>
+
+      <div class="lb-header">
+        <div class="lb-titlebar">
+          <button class="icon-btn" onclick="navigateTo('home')" aria-label="Indietro">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 5l-7 6 7 6"/></svg>
+          </button>
+          <div class="lb-title">Leaderboard</div>
+          <button class="icon-btn" aria-label="Menu" onclick="openDrawer()">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="7" x2="18" y2="7"/><line x1="4" y1="11" x2="18" y2="11"/><line x1="4" y1="15" x2="18" y2="15"/></svg>
+          </button>
+        </div>
+
+        <div class="lb-podium">
+          <div class="podium-spot podium-2">
+            <div class="podium-medal">2</div>
+            <div class="podium-name">Oreto-Perez</div>
+            <div class="podium-score">7.4</div>
+            <div class="podium-bar"></div>
+          </div>
+          <div class="podium-spot podium-1">
+            <div class="podium-medal">1</div>
+            <div class="podium-name">Stazione</div>
+            <div class="podium-score">8.2</div>
+            <div class="podium-bar"></div>
+          </div>
+          <div class="podium-spot podium-3">
+            <div class="podium-medal">3</div>
+            <div class="podium-name">Corso Mille</div>
+            <div class="podium-score">6.8</div>
+            <div class="podium-bar"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lb-list">
+        <div class="lb-row">
+          <div class="lb-rank">4</div>
+          <div class="lb-name">Oreto-Guadagna</div>
+          <div class="lb-trend up">↑ 2</div>
+          <div class="lb-score">6.4</div>
+        </div>
+        <div class="lb-row">
+          <div class="lb-rank">5</div>
+          <div class="lb-name">Sant'Erasmo</div>
+          <div class="lb-trend same">—</div>
+          <div class="lb-score">6.1</div>
+        </div>
+        <div class="lb-row">
+          <div class="lb-rank">6</div>
+          <div class="lb-name">Ponte Oreto</div>
+          <div class="lb-trend up">↑ 1</div>
+          <div class="lb-score">5.9</div>
+        </div>
+        <div class="lb-row">
+          <div class="lb-rank">7</div>
+          <div class="lb-name">Via Tukory</div>
+          <div class="lb-trend down">↓ 3</div>
+          <div class="lb-score">5.6</div>
+        </div>
+        <div class="lb-row">
+          <div class="lb-rank">8</div>
+          <div class="lb-name">Feliciuzza</div>
+          <div class="lb-trend down">↓ 1</div>
+          <div class="lb-score">5.2</div>
+        </div>
+        <div class="lb-row you">
+          <div class="lb-rank" id="user-rank">—</div>
+          <div class="lb-name"><b>Tu</b> · <span id="user-zone">Habitante Oreto-Stazione</span></div>
+          <div class="lb-trend up">↑ —</div>
+          <div class="lb-score" id="user-score">0</div>
+        </div>
+
+        <div class="lb-cta" onclick="navigateTo('segnalazioni'); switchSegTab('nuova');">
+          <div class="lb-cta-icon">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 3v14M3 10h14"/></svg>
+          </div>
+          <div class="lb-cta-text"><b>Sali in classifica.</b><br>Una segnalazione utile = +30 PH per Oreto-Stazione.</div>
+        </div>
+      </div>
+
+      <nav class="bottom-nav">
+        <button class="nav-btn" onclick="navigateTo('home')">
+          <span class="nav-btn-icon">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10l8-7 8 7v9a2 2 0 0 1-2 2h-3v-6h-6v6H5a2 2 0 0 1-2-2v-9z"/></svg>
+          </span>
+          Home
+        </button>
+        <button class="nav-btn nav-btn-segnala" onclick="navigateTo('segnalazioni'); switchSegTab('nuova');">
+          <span class="nav-btn-icon">
+            <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="14" y1="6" x2="14" y2="22"/><line x1="6" y1="14" x2="22" y2="14"/></svg>
+          </span>
+        </button>
+        <button class="nav-btn" onclick="navigateTo('profile')">
+          <span class="nav-btn-icon">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="8" r="3.5"/><path d="M4 19c0-3.5 3-6 7-6s7 2.5 7 6"/></svg>
+          </span>
+          Profilo
+        </button>
+      </nav>
+    </div>
+
+    <!-- ============ DRAWER (Hamburger menu) ============ -->
+    <div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
+    <div class="drawer" id="drawer">
+      <div class="drawer-header">
+        <div class="drawer-greeting">Ciao</div>
+        <div class="drawer-name">Vincenza</div>
+      </div>
+      <div class="drawer-nav">
+        <div class="drawer-item" onclick="navigateTo('home'); closeDrawer();">
+          <svg class="drawer-item-icon" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10l8-7 8 7v9a2 2 0 0 1-2 2h-3v-6h-6v6H5a2 2 0 0 1-2-2v-9z"/></svg>
+          Mappa di Palermo
+        </div>
+        <div class="drawer-item" onclick="navigateTo('profile'); closeDrawer();">
+          <svg class="drawer-item-icon" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="8" r="3.5"/><path d="M4 19c0-3.5 3-6 7-6s7 2.5 7 6"/></svg>
+          Profilo Habitante
+        </div>
+        <div class="drawer-item" onclick="navigateTo('segnalazioni'); switchSegTab('list'); closeDrawer();">
+          <svg class="drawer-item-icon" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M9 14l2 2 4-4"/></svg>
+          Le mie segnalazioni
+        </div>
+        <div class="drawer-item" onclick="navigateTo('leaderboard'); closeDrawer();">
+          <svg class="drawer-item-icon" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h12v6a6 6 0 0 1-12 0V3zM8 21h6M11 15v6M3 5h2v3a2 2 0 0 1-2-2V5zM19 5h-2v3a2 2 0 0 0 2-2V5z"/></svg>
+          Classifica Habitat
+        </div>
+        <div class="drawer-item" onclick="alert('Sondaggi in arrivo'); closeDrawer();">
+          <svg class="drawer-item-icon" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5h10M9 11h10M9 17h10M5 5l-1 2 1 2M5 11l-1 2 1 2M5 17l-1 2 1 2"/></svg>
+          Sondaggi del rione
+        </div>
+        <div class="drawer-item" onclick="alert('Funzione in sviluppo'); closeDrawer();">
+          <svg class="drawer-item-icon" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M11 7v4l3 2"/></svg>
+          Storico attività
+        </div>
+        <div class="drawer-item" onclick="alert('Impostazioni'); closeDrawer();">
+          <svg class="drawer-item-icon" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="3"/><path d="M11 1v3M11 18v3M3.5 3.5l2 2M16.5 16.5l2 2M1 11h3M18 11h3M3.5 18.5l2-2M16.5 5.5l2-2"/></svg>
+          Impostazioni
+        </div>
+      </div>
+      <div class="drawer-footer">
+        Habitat Palermo Edition · v0.1<br>
+        Un'iniziativa civica indipendente.
+      </div>
+    </div>
+
+    <!-- Toast notification -->
+    <div class="toast" id="toast">
+      <svg class="toast-icon" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 9 7 13 15 5"/></svg>
+      <span id="toast-message">Segnalazione ricevuta!</span>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<script>
+  // ============================================================
+  // DATI EMBEDDATI: confini esatti Oreto-Stazione
+  // ============================================================
+  const oretoGeoJSON = {"type":"FeatureCollection","features":[{"type":"Feature","properties":{"QUA_ID":3,"name":"ORETO-STAZIONE"},"geometry":{"type":"Polygon","coordinates":[[[13.373196,38.104863],[13.373576,38.104635],[13.374336,38.104016],[13.374431,38.103969],[13.374537,38.103865],[13.374795,38.103555],[13.37489,38.10342],[13.375104,38.102946],[13.37515,38.102743],[13.375193,38.102352],[13.375136,38.101984],[13.375059,38.101717],[13.374344,38.100334],[13.373933,38.099729],[13.373765,38.099529],[13.373557,38.099318],[13.373472,38.099277],[13.373255,38.099107],[13.373004,38.098958],[13.372897,38.098866],[13.372759,38.098787],[13.372463,38.098656],[13.372762,38.098171],[13.374224,38.098134],[13.376039,38.095774],[13.37668,38.095525],[13.377085,38.095337],[13.377387,38.095274],[13.377566,38.095153],[13.377712,38.095122],[13.377953,38.095006],[13.378404,38.094845],[13.377711,38.093865],[13.377684,38.093834],[13.377692,38.093735],[13.378295,38.091674],[13.376982,38.091969],[13.376829,38.091867],[13.375651,38.091134],[13.37478,38.090594],[13.374201,38.090298],[13.374001,38.090587],[13.373873,38.090822],[13.373811,38.091028],[13.37369,38.091228],[13.37353,38.091416],[13.373265,38.091887],[13.372731,38.092464],[13.37264,38.092616],[13.372425,38.092848],[13.372289,38.093068],[13.372159,38.093226],[13.37198,38.093402],[13.371885,38.093572],[13.371752,38.093759],[13.371645,38.093981],[13.371418,38.094222],[13.370965,38.09522],[13.370912,38.09544],[13.370639,38.096041],[13.370544,38.09635],[13.369739,38.095869],[13.36884,38.09536],[13.368304,38.095046],[13.368076,38.094865],[13.367237,38.094356],[13.366381,38.093859],[13.365771,38.09386],[13.364262,38.095632],[13.364031,38.095563],[13.363625,38.095378],[13.361786,38.098354],[13.361677,38.09827],[13.361479,38.097977],[13.361394,38.09789],[13.361218,38.097592],[13.361151,38.097525],[13.360997,38.097498],[13.360213,38.098073],[13.360035,38.098251],[13.359963,38.098253],[13.359316,38.097623],[13.358718,38.097653],[13.358689,38.097716],[13.358562,38.097706],[13.358085,38.098261],[13.358215,38.098593],[13.358374,38.098679],[13.358018,38.099053],[13.359232,38.100192],[13.360465,38.101072],[13.360697,38.101258],[13.361531,38.101874],[13.361888,38.102488],[13.361351,38.102809],[13.359506,38.104346],[13.358535,38.105191],[13.357476,38.106087],[13.357145,38.106371],[13.355954,38.107394],[13.355326,38.107913],[13.356442,38.108181],[13.35845,38.108679],[13.358662,38.108743],[13.359776,38.108915],[13.360506,38.109027],[13.361746,38.109239],[13.362689,38.109575],[13.363353,38.109815],[13.363946,38.1099],[13.365082,38.110053],[13.365434,38.110213],[13.36603,38.110478],[13.366878,38.110846],[13.367485,38.111142],[13.368329,38.11153],[13.369104,38.11188],[13.371049,38.112774],[13.371469,38.112967],[13.373657,38.113987],[13.37622,38.115173],[13.377652,38.115866],[13.377686,38.115859],[13.377685,38.11583],[13.377703,38.115819],[13.377762,38.115811],[13.377772,38.115789],[13.377823,38.115771],[13.377846,38.115709],[13.37787,38.115721],[13.377911,38.115691],[13.377951,38.115629],[13.377997,38.115603],[13.377985,38.115578],[13.378018,38.115537],[13.37808,38.115529],[13.378074,38.115444],[13.378104,38.115451],[13.378133,38.115422],[13.378148,38.115369],[13.378163,38.11537],[13.378281,38.115248],[13.37829,38.115204],[13.378321,38.11519],[13.378323,38.115134],[13.378333,38.115105],[13.378356,38.115102],[13.378354,38.115078],[13.378428,38.11508],[13.378415,38.115025],[13.378448,38.114981],[13.378499,38.114957],[13.378479,38.114926],[13.378508,38.114883],[13.378608,38.114768],[13.378668,38.114751],[13.378675,38.114744],[13.378651,38.114733],[13.378719,38.11462],[13.378756,38.114598],[13.378803,38.114531],[13.378837,38.114515],[13.378866,38.114454],[13.378929,38.114412],[13.3789,38.114371],[13.379056,38.114281],[13.379026,38.114211],[13.37917,38.114234],[13.379202,38.114208],[13.379206,38.114178],[13.379257,38.11419],[13.379298,38.114167],[13.379297,38.114143],[13.37938,38.114148],[13.379419,38.114117],[13.379416,38.114018],[13.379449,38.114001],[13.379499,38.114011],[13.379489,38.113935],[13.379544,38.113924],[13.37959,38.113891],[13.379656,38.113805],[13.379673,38.11368],[13.379766,38.113604],[13.379699,38.113584],[13.37971,38.113545],[13.379647,38.113551],[13.379656,38.113588],[13.379592,38.113553],[13.379188,38.114079],[13.378926,38.114127],[13.378798,38.114059],[13.37883,38.114018],[13.378815,38.113946],[13.378798,38.113919],[13.378722,38.113868],[13.379032,38.113335],[13.379021,38.113312],[13.378797,38.11326],[13.378824,38.113126],[13.378871,38.11305],[13.378906,38.112925],[13.378976,38.112813],[13.379113,38.112702],[13.379198,38.112703],[13.379416,38.112783],[13.379451,38.11277],[13.379463,38.11273],[13.379354,38.112633],[13.379352,38.112588],[13.37955,38.11242],[13.379609,38.11234],[13.379633,38.112259],[13.379813,38.112104],[13.38004,38.111931],[13.380256,38.111821],[13.380303,38.111745],[13.380364,38.111715],[13.380445,38.11163],[13.380572,38.1116],[13.38059,38.11156],[13.380588,38.111488],[13.380766,38.111324],[13.380822,38.111221],[13.380918,38.111141],[13.381262,38.110938],[13.381327,38.110849],[13.381336,38.1108],[13.381318,38.110727],[13.381333,38.110692],[13.381394,38.110643],[13.379902,38.110189],[13.379268,38.109787],[13.378997,38.109612],[13.376963,38.108256],[13.375771,38.107394],[13.374334,38.105983],[13.373339,38.105028],[13.373196,38.104863]]]}}]};
+  const oretoRing = oretoGeoJSON.features[0].geometry.coordinates[0];
+
+  const TYPE_LABELS = {
+    buca: "Buca / dissesto", luce: "Lampione",
+    rifiuti: "Rifiuti", segnaletica: "Segnaletica",
+    verde: "Verde pubblico", marciapiede: "Marciapiede",
+    sosta: "Sosta selvaggia", tombino: "Tombino",
+    altro: "Altro",
+  };
+  const TYPE_COLORS = {
+    buca: "#9A3429", luce: "#E8B14B", rifiuti: "#5A8C4A",
+    segnaletica: "#6F9395", verde: "#5A8C4A", marciapiede: "#C66647",
+    sosta: "#C84B3D", tombino: "#5a4a8a", altro: "#7A6552",
+  };
+  const PH_PER_REPORT = 30;
+
+  // ============================================================
+  // STATO
+  // ============================================================
+  let reports = [];
+  let streetsList = [];
+  const reportMarkers = new Map();
+  let pendingLatLng = null;
+  let selectedCategory = null;
+
+  // ============================================================
+  // PERSISTENZA
+  // ============================================================
+  function safeGet(key, fallback) {
+    try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+    catch (e) { return fallback; }
+  }
+  function safeSet(key, val) {
+    try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {}
+  }
+
+  // ============================================================
+  // NAVIGAZIONE
+  // ============================================================
+  function navigateTo(screenName) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    const target = document.getElementById('screen-' + screenName);
+    if (target) {
+      target.classList.add('active');
+      if (screenName === 'profile') {
+        const ring = target.querySelector('.progress-ring');
+        if (ring) {
+          ring.classList.remove('animate');
+          void ring.offsetWidth;
+          ring.classList.add('animate');
+        }
+        updateProfileUI();
+      }
+      if (screenName === 'home' && map) {
+        setTimeout(() => map.invalidateSize(), 60);
+      }
+      const scrollables = target.querySelectorAll('.seg-list, .lb-list, .profile-body, .seg-form');
+      scrollables.forEach(el => el.scrollTop = 0);
+    }
+  }
+
+  function openDrawer() {
+    document.getElementById('drawer').classList.add('open');
+    document.getElementById('drawer-overlay').classList.add('open');
+  }
+  function closeDrawer() {
+    document.getElementById('drawer').classList.remove('open');
+    document.getElementById('drawer-overlay').classList.remove('open');
+  }
+
+  function switchSegTab(which) {
+    const tabList = document.getElementById('tab-list');
+    const tabNuova = document.getElementById('tab-nuova');
+    const listView = document.getElementById('seg-list-view');
+    const formView = document.getElementById('seg-form-view');
+    if (which === 'list') {
+      tabList.classList.add('active');
+      tabNuova.classList.remove('active');
+      listView.style.display = 'block';
+      formView.style.display = 'none';
+    } else {
+      tabList.classList.remove('active');
+      tabNuova.classList.add('active');
+      listView.style.display = 'none';
+      formView.style.display = 'block';
+    }
+  }
+
+  // ============================================================
+  // POINT-IN-POLYGON (ray casting)
+  // ============================================================
+  function isInsideOreto(lat, lng) {
+    let inside = false;
+    for (let i = 0, j = oretoRing.length - 1; i < oretoRing.length; j = i++) {
+      const xi = oretoRing[i][0], yi = oretoRing[i][1];
+      const xj = oretoRing[j][0], yj = oretoRing[j][1];
+      const intersect = ((yi > lat) !== (yj > lat)) &&
+        (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi);
+      if (intersect) inside = !inside;
+    }
+    return inside;
+  }
+
+  function distSqPointToSegment(px, py, ax, ay, bx, by) {
+    const dx = bx - ax, dy = by - ay;
+    if (dx === 0 && dy === 0) {
+      const ddx = px - ax, ddy = py - ay;
+      return ddx * ddx + ddy * ddy;
+    }
+    let t = ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy);
+    t = Math.max(0, Math.min(1, t));
+    const cx = ax + t * dx, cy = ay + t * dy;
+    const ddx = px - cx, ddy = py - cy;
+    return ddx * ddx + ddy * ddy;
+  }
+
+  function findNearestStreet(lat, lng) {
+    if (!streetsList.length) return null;
+    let best = null, bestDist = Infinity;
+    for (const street of streetsList) {
+      for (const seg of street.segments) {
+        for (let i = 0; i < seg.length - 1; i++) {
+          const d = distSqPointToSegment(lng, lat, seg[i][0], seg[i][1], seg[i+1][0], seg[i+1][1]);
+          if (d < bestDist) { bestDist = d; best = street; }
+        }
+      }
+    }
+    return best;
+  }
+
+  // ============================================================
+  // MAPPA LEAFLET
+  // ============================================================
+  let map = null;
+  let oretoLayer = null;
+
+  function initMap() {
+    map = L.map('real-map', {
+      zoomControl: true,
+      attributionControl: true,
+      tap: true,
+    }).setView([38.1031, 13.3683], 15);
+
+    L.control.zoom({ position: 'topleft' }).remove(); // remove default
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      attribution: '© OSM © CARTO',
+      subdomains: 'abcd', maxZoom: 19,
+    }).addTo(map);
+
+    oretoLayer = L.geoJSON(oretoGeoJSON, {
+      style: {
+        color: '#9A3429', weight: 3, opacity: 1,
+        fillColor: '#9A3429', fillOpacity: 0.08,
+        interactive: false,
+      },
+    }).addTo(map);
+    map.fitBounds(oretoLayer.getBounds(), { padding: [20, 20] });
+
+    map.on('click', (e) => {
+      const { lat, lng } = e.latlng;
+      if (!isInsideOreto(lat, lng)) {
+        showToast('Solo dentro Oreto-Stazione');
+        return;
+      }
+      pendingLatLng = { lat, lng };
+      const helpEl = document.getElementById('map-help');
+      if (helpEl) helpEl.classList.add('hidden');
+      navigateTo('segnalazioni');
+      switchSegTab('nuova');
+      prepareForm(lat, lng);
+    });
+  }
+
+  function addReportMarker(r) {
+    const color = TYPE_COLORS[r.type] || '#7A6552';
+    const icon = L.divIcon({
+      className: 'report-marker-pin',
+      html: `<div style="width:22px;height:22px;background:${color};border:3px solid #F8EBD3;border-radius:50%;box-shadow:0 3px 8px rgba(0,0,0,0.4);"></div>`,
+      iconSize: [22, 22], iconAnchor: [11, 11],
+    });
+    const m = L.marker([r.lat, r.lng], { icon }).addTo(map);
+    m.bindPopup(`
+      <strong>${TYPE_LABELS[r.type]}</strong>
+      <div>${escapeHtml(r.street)}${r.civic ? ', n. ' + escapeHtml(r.civic) : ''}</div>
+      ${r.description ? `<div style="margin-top:6px;font-style:italic;">"${escapeHtml(r.description)}"</div>` : ''}
+      <small>${formatDate(r.timestamp)}</small>
+    `);
+    reportMarkers.set(r.id, m);
+  }
+
+  // ============================================================
+  // CARICAMENTO STRADE
+  // ============================================================
+  async function loadStreets() {
+    const statusEl = document.getElementById('streets-status');
+
+    const cached = safeGet('oreto_streets_v2', null);
+    if (cached && cached.streets && cached.timestamp) {
+      const ageH = (Date.now() - cached.timestamp) / 1000 / 3600;
+      if (ageH < 24 * 7) {
+        streetsList = cached.streets;
+        if (statusEl) {
+          statusEl.className = 'street-loading ok';
+          statusEl.textContent = `✓ ${streetsList.length} strade · da cache`;
+        }
+        buildStreetsDatalist();
+        return;
+      }
+    }
+
+    const bbox = '38.085,13.350,38.120,13.385';
+    const query = `[out:json][timeout:60];(way["highway"]["name"](${bbox}););out tags geom;`;
+    try {
+      const res = await fetch('https://overpass-api.de/api/interpreter', {
+        method: 'POST',
+        body: 'data=' + encodeURIComponent(query),
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      const byName = new Map();
+      for (const el of data.elements || []) {
+        if (el.type !== 'way' || !el.tags || !el.tags.name) continue;
+        if (!el.geometry || el.geometry.length < 2) continue;
+        const insideAny = el.geometry.some(p => isInsideOreto(p.lat, p.lon));
+        if (!insideAny) continue;
+        const name = el.tags.name.trim();
+        const seg = el.geometry.map(p => [p.lon, p.lat]);
+        if (!byName.has(name)) byName.set(name, { name, segments: [seg] });
+        else byName.get(name).segments.push(seg);
+      }
+      streetsList = Array.from(byName.values()).sort((a, b) =>
+        a.name.localeCompare(b.name, 'it', { sensitivity: 'base' })
+      );
+      safeSet('oreto_streets_v2', { streets: streetsList, timestamp: Date.now() });
+      if (statusEl) {
+        statusEl.className = 'street-loading ok';
+        statusEl.textContent = `✓ ${streetsList.length} strade caricate`;
+      }
+      buildStreetsDatalist();
+    } catch (err) {
+      if (statusEl) {
+        statusEl.className = 'street-loading err';
+        statusEl.textContent = `✕ Errore caricamento strade. Riprova più tardi.`;
+      }
+    }
+  }
+
+  function buildStreetsDatalist() {
+    const dl = document.getElementById('streets-datalist');
+    if (!dl) return;
+    dl.innerHTML = '';
+    streetsList.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.name;
+      dl.appendChild(opt);
+    });
+  }
+
+  // ============================================================
+  // FORM SEGNALAZIONE
+  // ============================================================
+  function prepareForm(lat, lng) {
+    document.getElementById('form-coords').value = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    const nearest = findNearestStreet(lat, lng);
+    document.getElementById('form-street').value = nearest ? nearest.name : '';
+    document.getElementById('form-civic').value = '';
+    document.getElementById('form-desc').value = '';
+    selectedCategory = null;
+    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('selected'));
+  }
+
+  document.querySelectorAll('.cat-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedCategory = btn.dataset.cat;
+    });
+  });
+
+  function submitSegnalazione() {
+    const street = document.getElementById('form-street').value.trim();
+    const civic = document.getElementById('form-civic').value.trim();
+    const desc = document.getElementById('form-desc').value.trim();
+    const coords = document.getElementById('form-coords').value;
+
+    if (!selectedCategory) {
+      showToast('Scegli una categoria');
+      return;
+    }
+    if (!street) {
+      showToast('Indica la via');
+      return;
+    }
+    if (!pendingLatLng) {
+      const c = map.getCenter();
+      if (!isInsideOreto(c.lat, c.lng)) {
+        showToast('Tocca prima sulla mappa per la posizione');
+        return;
+      }
+      pendingLatLng = { lat: c.lat, lng: c.lng };
+    }
+
+    const r = {
+      id: 'r_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+      lat: pendingLatLng.lat, lng: pendingLatLng.lng,
+      type: selectedCategory,
+      street, civic, description: desc,
+      status: 'in-attesa',
+      timestamp: Date.now(),
+    };
+    reports.push(r);
+    safeSet('oreto_reports_v2', reports);
+    addReportMarker(r);
+    refreshReportsUI();
+    updateHomePanelUI();
+
+    pendingLatLng = null;
+    showToast(`Segnalazione ricevuta! +${PH_PER_REPORT} PH`);
+    setTimeout(() => switchSegTab('list'), 1100);
+  }
+
+  // ============================================================
+  // SEG-LIST RENDER
+  // ============================================================
+  function renderSegCard(r) {
+    const color = TYPE_COLORS[r.type] || '#7A6552';
+    const statusClass = r.status || 'in-attesa';
+    const statusLabel = { 'in-attesa': 'In attesa', 'in-lavorazione': 'In lavorazione', 'risolto': 'Risolto' }[statusClass] || 'In attesa';
+    return `
+      <div class="seg-card" data-id="${r.id}">
+        <div class="seg-photo" style="background:${color};">
+          <svg viewBox="0 0 80 80">
+            <rect width="80" height="80" fill="${color}"/>
+            <circle cx="40" cy="36" r="14" fill="rgba(255,255,255,0.18)"/>
+            <text x="40" y="44" text-anchor="middle" font-family="Bricolage Grotesque" font-weight="800" font-size="18" fill="white">
+              ${TYPE_LABELS[r.type].charAt(0)}
+            </text>
+            <rect x="0" y="60" width="80" height="20" fill="rgba(0,0,0,0.18)"/>
+          </svg>
+        </div>
+        <div class="seg-info">
+          <div>
+            <div class="seg-cat-title">${escapeHtml(r.street)}${r.civic ? ', n. ' + escapeHtml(r.civic) : ''}</div>
+            <div class="seg-date">${formatDate(r.timestamp)} · ${TYPE_LABELS[r.type]}</div>
+            ${r.description ? `<div class="seg-date" style="margin-top:4px;font-style:italic;">${escapeHtml(r.description.slice(0, 60))}${r.description.length > 60 ? '…' : ''}</div>` : ''}
+          </div>
+          <span class="seg-status ${statusClass}">${statusLabel}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  function refreshReportsUI() {
+    const empty = document.getElementById('seg-empty');
+    const container = document.getElementById('seg-cards-container');
+    if (reports.length === 0) {
+      empty.style.display = 'block';
+      container.innerHTML = '';
+      return;
+    }
+    empty.style.display = 'none';
+    const sorted = [...reports].sort((a, b) => b.timestamp - a.timestamp);
+    container.innerHTML = sorted.map(renderSegCard).join('');
+    container.querySelectorAll('.seg-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const id = card.dataset.id;
+        const r = reports.find(x => x.id === id);
+        if (r) {
+          navigateTo('home');
+          setTimeout(() => {
+            map.flyTo([r.lat, r.lng], 18, { duration: 0.7 });
+            const m = reportMarkers.get(id);
+            if (m) setTimeout(() => m.openPopup(), 750);
+          }, 80);
+        }
+      });
+    });
+  }
+
+  // ============================================================
+  // HOME PANEL & PROFILE UI
+  // ============================================================
+  function updateHomePanelUI() {
+    document.getElementById('panel-count').textContent = reports.length;
+    // Score = 10 - (segnalazioni in attesa / 5), clamp [0, 10]
+    const inAttesa = reports.filter(r => (r.status || 'in-attesa') === 'in-attesa').length;
+    const score = Math.max(0, Math.min(10, 10 - inAttesa * 0.5));
+    document.getElementById('panel-ring-text').textContent = score.toFixed(1);
+    const offset = 113 - (score / 10) * 113;
+    document.getElementById('panel-ring-fill').setAttribute('stroke-dashoffset', offset);
+  }
+
+  function updateProfileUI() {
+    const ph = reports.length * PH_PER_REPORT;
+    const profileNumber = document.querySelector('.progress-number');
+    const profilePercent = document.querySelector('.progress-percent');
+    if (profileNumber) profileNumber.textContent = ph;
+    const nextLevel = Math.ceil((ph + 1) / 200) * 200;
+    const pct = Math.round((ph / nextLevel) * 100);
+    if (profilePercent) profilePercent.textContent = `${pct}% al prossimo livello`;
+    const ringFill = document.querySelector('.progress-ring-fill');
+    if (ringFill) {
+      const circumference = 502;
+      const dashoffset = circumference - (pct / 100) * circumference;
+      ringFill.style.animation = 'none';
+      ringFill.setAttribute('stroke-dashoffset', dashoffset);
+    }
+
+    // Missioni
+    const buchOreto = reports.filter(r => r.type === 'buca' &&
+      r.street.toLowerCase().includes('oreto')).length;
+    setMission(1, Math.min(buchOreto, 3), 3);
+
+    const guadagna = reports.filter(r =>
+      r.street.toLowerCase().includes('guadagna') ||
+      r.lat < 38.099).length;
+    setMission(2, Math.min(guadagna, 5), 5);
+
+    const uniqueStreets = new Set(reports.map(r => r.street.toLowerCase())).size;
+    setMission(3, Math.min(uniqueStreets, 3), 3);
+
+    // Leaderboard self
+    const userRank = document.getElementById('user-rank');
+    const userScore = document.getElementById('user-score');
+    if (userRank && userScore) {
+      userScore.textContent = ph;
+      userRank.textContent = ph > 0 ? '—' : '—';
+    }
+  }
+
+  function setMission(n, current, total) {
+    const fill = document.getElementById(`mission-${n}-fill`);
+    const prog = document.getElementById(`mission-${n}-progress`);
+    if (fill) fill.style.width = `${Math.round((current / total) * 100)}%`;
+    if (prog) prog.textContent = n === 3
+      ? `${current} di ${total} vie`
+      : `${current} di ${total} completate`;
+  }
+
+  // ============================================================
+  // UTILS
+  // ============================================================
+  function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"\']/g, c => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[c]));
+  }
+  function formatDate(ts) {
+    const d = new Date(ts);
+    return d.toLocaleDateString('it', { day:'numeric', month:'long' }) + ' · ' +
+           d.toLocaleTimeString('it', { hour:'2-digit', minute:'2-digit' });
+  }
+  function showToast(message) {
+    const toast = document.getElementById('toast');
+    document.getElementById('toast-message').textContent = message;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2400);
+  }
+
+  document.querySelectorAll('.lb-row').forEach(row => {
+    row.addEventListener('click', () => navigateTo('home'));
+  });
+
+  // ============================================================
+  // INIT
+  // ============================================================
+  reports = safeGet('oreto_reports_v2', []);
+
+  document.addEventListener('DOMContentLoaded', () => {
+    initMap();
+    reports.forEach(addReportMarker);
+    refreshReportsUI();
+    updateHomePanelUI();
+    loadStreets();
+  });
+  if (document.readyState !== 'loading') {
+    initMap();
+    reports.forEach(addReportMarker);
+    refreshReportsUI();
+    updateHomePanelUI();
+    loadStreets();
+  }
+</script>
+
+</body>
+</html>
