@@ -4,6 +4,27 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#9A3429">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Habitat">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="Habitat Oreto-Stazione · Segnala buche, rifiuti, illuminazione e altri problemi del quartiere 3 di Palermo">
+
+<!-- PWA: manifest inline come data URL così funziona su Vercel statico senza file separato -->
+<link rel="manifest" id="manifest-link">
+
+<!-- Open Graph per condivisione -->
+<meta property="og:title" content="Habitat Oreto-Stazione">
+<meta property="og:description" content="Segnala problemi del quartiere · Quartiere 3 di Palermo">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="it_IT">
+
+<!-- Icona inline SVG come favicon e app icon -->
+<link rel="icon" type="image/svg+xml" href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" fill="%239A3429"/><path d="M50 18 L72 52 L60 52 L60 78 L40 78 L40 52 L28 52 Z" fill="%23F8EBD3"/></svg>'>
+<link rel="apple-touch-icon" href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180"><rect width="180" height="180" rx="40" fill="%239A3429"/><path d="M90 40 L130 100 L108 100 L108 140 L72 140 L72 100 L50 100 Z" fill="%23F8EBD3"/></svg>'>
 <title>Habitat – Palermo Edition</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -718,7 +739,8 @@
     border-radius: var(--raggio-md);
     padding: 12px;
     display: flex;
-    gap: 12px;
+    flex-direction: column;
+    gap: 10px;
     margin-bottom: 12px;
     border: 1px solid var(--linea);
     cursor: pointer;
@@ -728,8 +750,13 @@
     transform: translateY(-1px);
     box-shadow: var(--ombra-soft);
   }
+  .seg-card-main {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
   .seg-photo {
-    width: 80px; height: 80px;
+    width: 72px; height: 72px;
     border-radius: var(--raggio-sm);
     flex-shrink: 0;
     overflow: hidden;
@@ -739,34 +766,39 @@
   .seg-photo svg { width: 100%; height: 100%; display: block; }
   .seg-info {
     flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    gap: 4px;
   }
   .seg-cat-title {
     font-family: var(--font-display);
     font-weight: 600;
-    font-size: 16px;
+    font-size: 15px;
     color: var(--testo);
     line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .seg-date {
-    font-size: 12px;
+    font-size: 11px;
     color: var(--testo-muto);
-    margin-top: 4px;
   }
   .seg-status {
     align-self: flex-start;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 600;
-    padding: 4px 10px;
-    border-radius: 8px;
-    margin-top: 8px;
+    padding: 3px 8px;
+    border-radius: 7px;
     font-family: var(--font-body);
+    margin-top: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
   }
   .seg-status.in-lavorazione {
-    background: var(--ocra-light);
-    color: #6B4A00;
+    background: rgba(232,177,75,0.25);
+    color: var(--ocra-dark);
   }
   .seg-status.risolto {
     background: var(--verde-light);
@@ -1521,6 +1553,322 @@
     line-height: 1;
   }
 
+  /* ============ FILTER CHIPS sulla mappa ============ */
+  .map-filters {
+    position: absolute;
+    top: 60px; left: 12px; right: 12px;
+    z-index: 5;
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 4px 2px;
+    scrollbar-width: none;
+  }
+  .map-filters::-webkit-scrollbar { display: none; }
+  .filter-chip {
+    flex-shrink: 0;
+    background: var(--sabbia-light);
+    border: 1.5px solid var(--linea-forte);
+    border-radius: 20px;
+    padding: 6px 12px;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 11px;
+    color: var(--testo);
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow: var(--ombra-soft);
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    user-select: none;
+  }
+  .filter-chip .chip-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .filter-chip:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--ombra-medium);
+  }
+  .filter-chip.active {
+    background: var(--testo);
+    color: white;
+    border-color: var(--testo);
+  }
+  .filter-chip.active .chip-dot { display: none; }
+  .filter-chip[data-filter="all"].active {
+    background: var(--cupola);
+    border-color: var(--cupola);
+  }
+
+  /* ============ STATO SEGNALAZIONI ============ */
+  .seg-status.in-attesa {
+    background: var(--rosso-attesa-light);
+    color: var(--cupola);
+  }
+  .seg-status.in-lavorazione {
+    background: rgba(232, 177, 75, 0.25);
+    color: var(--ocra-dark);
+  }
+  .seg-status.risolto {
+    background: var(--verde-light);
+    color: #2D5022;
+  }
+  .seg-status.archiviato {
+    background: rgba(107, 84, 68, 0.18);
+    color: var(--testo-muto);
+  }
+
+  /* Status picker nel form */
+  .status-picker {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  .status-btn {
+    padding: 10px 6px;
+    border: 1.5px solid var(--linea);
+    background: var(--sabbia-light);
+    border-radius: var(--raggio-sm);
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 11px;
+    color: var(--testo);
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+    line-height: 1.2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .status-btn .status-dot-icon {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+  }
+  .status-btn:hover { background: var(--sabbia-warm); }
+  .status-btn.active {
+    color: white;
+    border-color: var(--testo);
+  }
+  .status-btn[data-status="in-attesa"].active {
+    background: var(--cupola);
+    border-color: var(--cupola);
+  }
+  .status-btn[data-status="in-lavorazione"].active {
+    background: var(--ocra-dark);
+    border-color: var(--ocra-dark);
+  }
+  .status-btn[data-status="risolto"].active {
+    background: var(--verde);
+    border-color: var(--verde);
+  }
+  .status-btn[data-status="in-attesa"] .status-dot-icon { background: var(--cupola); }
+  .status-btn[data-status="in-lavorazione"] .status-dot-icon { background: var(--ocra-dark); }
+  .status-btn[data-status="risolto"] .status-dot-icon { background: var(--verde); }
+  .status-btn.active .status-dot-icon { background: white; }
+
+  /* ============ AZIONI SU SEGNALAZIONE (delete, share, status) ============ */
+  .seg-actions {
+    display: flex;
+    gap: 6px;
+    padding-top: 8px;
+    border-top: 1px solid var(--linea);
+  }
+  .seg-action-btn {
+    flex: 1;
+    padding: 7px 4px;
+    border: 1px solid var(--linea);
+    background: transparent;
+    border-radius: var(--raggio-sm);
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 10px;
+    color: var(--testo);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    transition: all 0.15s;
+    min-width: 0;
+    letter-spacing: 0.01em;
+  }
+  .seg-action-btn svg { flex-shrink: 0; }
+  .seg-action-btn span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .seg-action-btn:hover {
+    background: var(--sabbia-warm);
+    border-color: var(--linea-forte);
+  }
+  .seg-action-btn.danger {
+    color: var(--cupola);
+    border-color: rgba(154, 52, 41, 0.25);
+  }
+  .seg-action-btn.danger:hover {
+    background: var(--rosso-attesa-light);
+    border-color: var(--cupola);
+  }
+
+  /* ============ BANNER PWA INSTALL ============ */
+  .install-banner {
+    position: absolute;
+    bottom: 100px; left: 16px; right: 16px;
+    background: var(--testo);
+    color: white;
+    padding: 12px 14px;
+    border-radius: var(--raggio-md);
+    z-index: 50;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    display: none;
+    align-items: center;
+    gap: 10px;
+    animation: slideUpPanel 0.4s ease-out;
+  }
+  .install-banner.show { display: flex; }
+  .install-banner-icon {
+    width: 32px; height: 32px;
+    background: var(--ocra);
+    border-radius: 8px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--cupola-deep);
+  }
+  .install-banner-text {
+    flex: 1;
+    font-size: 12px;
+    line-height: 1.3;
+  }
+  .install-banner-text b { display: block; font-family: var(--font-display); font-size: 13px; }
+  .install-banner-actions { display: flex; gap: 6px; }
+  .install-banner-btn {
+    background: var(--ocra);
+    color: var(--cupola-deep);
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 11px;
+    cursor: pointer;
+  }
+  .install-banner-dismiss {
+    background: transparent;
+    color: rgba(255,255,255,0.7);
+    border: none;
+    padding: 6px 8px;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  /* ============ DEEP LINK BANNER (segnalazione singola) ============ */
+  .deeplink-banner {
+    position: absolute;
+    top: 60px; left: 12px; right: 12px;
+    background: var(--cupola);
+    color: white;
+    padding: 12px 14px;
+    border-radius: var(--raggio-md);
+    z-index: 6;
+    box-shadow: 0 4px 14px rgba(154,52,41,0.4);
+    display: none;
+    align-items: center;
+    gap: 10px;
+    animation: slideUpPanel 0.4s ease-out;
+  }
+  .deeplink-banner.show { display: flex; }
+  .deeplink-banner-text { flex: 1; font-size: 12px; line-height: 1.3; }
+  .deeplink-banner-text b { display: block; font-family: var(--font-display); font-size: 13px; }
+  .deeplink-banner-close {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: white;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+  }
+
+  /* ============ CONFIRM DIALOG ============ */
+  .confirm-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(26, 20, 16, 0.6);
+    z-index: 400;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    backdrop-filter: blur(2px);
+  }
+  .confirm-overlay.show { display: flex; animation: fadeIn 0.2s; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .confirm-dialog {
+    background: var(--sabbia-light);
+    border-radius: var(--raggio-md);
+    padding: 22px 20px 18px;
+    max-width: 320px;
+    width: 100%;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+    border: 1px solid var(--linea-forte);
+    animation: dialogSlide 0.25s ease-out;
+  }
+  @keyframes dialogSlide {
+    from { transform: translateY(20px) scale(0.96); opacity: 0; }
+    to { transform: translateY(0) scale(1); opacity: 1; }
+  }
+  .confirm-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--testo);
+    margin-bottom: 6px;
+    line-height: 1.2;
+  }
+  .confirm-msg {
+    font-size: 13px;
+    color: var(--testo-muto);
+    line-height: 1.4;
+    margin-bottom: 18px;
+  }
+  .confirm-actions {
+    display: flex;
+    gap: 8px;
+  }
+  .confirm-btn {
+    flex: 1;
+    padding: 11px;
+    border: none;
+    border-radius: var(--raggio-sm);
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .confirm-btn.cancel {
+    background: var(--sabbia-warm);
+    color: var(--testo);
+  }
+  .confirm-btn.cancel:hover { background: var(--ocra-light); }
+  .confirm-btn.danger {
+    background: var(--cupola);
+    color: white;
+  }
+  .confirm-btn.danger:hover { background: var(--cupola-deep); }
+
 </style>
 </head>
 <body>
@@ -1557,6 +1905,29 @@
       <div class="map-area">
         <div id="real-map"></div>
         <div class="map-overlay-pill" id="map-pill">Oreto-Stazione · 2,90 km²</div>
+
+        <!-- Filtri categoria sulla mappa -->
+        <div class="map-filters" id="map-filters">
+          <div class="filter-chip active" data-filter="all">Tutte</div>
+          <div class="filter-chip" data-filter="buca"><span class="chip-dot" style="background:#9A3429"></span>Buche</div>
+          <div class="filter-chip" data-filter="luce"><span class="chip-dot" style="background:#E8B14B"></span>Lampioni</div>
+          <div class="filter-chip" data-filter="rifiuti"><span class="chip-dot" style="background:#5A8C4A"></span>Rifiuti</div>
+          <div class="filter-chip" data-filter="segnaletica"><span class="chip-dot" style="background:#6F9395"></span>Segnaletica</div>
+          <div class="filter-chip" data-filter="verde"><span class="chip-dot" style="background:#5A8C4A"></span>Verde</div>
+          <div class="filter-chip" data-filter="marciapiede"><span class="chip-dot" style="background:#C66647"></span>Marciapiedi</div>
+          <div class="filter-chip" data-filter="sosta"><span class="chip-dot" style="background:#C84B3D"></span>Sosta</div>
+          <div class="filter-chip" data-filter="tombino"><span class="chip-dot" style="background:#5a4a8a"></span>Tombini</div>
+          <div class="filter-chip" data-filter="altro"><span class="chip-dot" style="background:#7A6552"></span>Altro</div>
+        </div>
+
+        <!-- Banner per segnalazione singola (deep link) -->
+        <div class="deeplink-banner" id="deeplink-banner">
+          <div class="deeplink-banner-text">
+            <b>Segnalazione condivisa</b>
+            <span id="deeplink-banner-detail">·</span>
+          </div>
+          <button class="deeplink-banner-close" onclick="closeDeeplinkBanner()" aria-label="Chiudi">×</button>
+        </div>
         <div class="map-help-tip" id="map-help">Tocca dentro il quartiere per segnalare</div>
 
         <!-- Bottom info panel -->
@@ -1948,6 +2319,24 @@
         </div>
 
         <div class="form-group">
+          <label class="form-label">Stato</label>
+          <div class="status-picker" id="status-picker">
+            <button type="button" class="status-btn active" data-status="in-attesa">
+              <span class="status-dot-icon"></span>
+              <span>In attesa</span>
+            </button>
+            <button type="button" class="status-btn" data-status="in-lavorazione">
+              <span class="status-dot-icon"></span>
+              <span>In lavorazione</span>
+            </button>
+            <button type="button" class="status-btn" data-status="risolto">
+              <span class="status-dot-icon"></span>
+              <span>Risolto</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
           <label class="form-label">Descrizione</label>
           <textarea class="form-textarea" id="form-desc" placeholder="Descrivi il problema in dettaglio…"></textarea>
         </div>
@@ -2150,14 +2539,30 @@
           <svg class="drawer-item-icon" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M11 7v4l3 2"/></svg>
           Storico attività
         </div>
+        <div class="drawer-item" onclick="reloadApp()">
+          <svg class="drawer-item-icon" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11a8 8 0 0 1 14-5l2-2v6h-6l2-2a5 5 0 0 0-9 3M19 11a8 8 0 0 1-14 5l-2 2v-6h6l-2 2a5 5 0 0 0 9-3"/></svg>
+          Ricarica app (forza aggiornamento)
+        </div>
         <div class="drawer-item" onclick="alert('Impostazioni'); closeDrawer();">
           <svg class="drawer-item-icon" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="3"/><path d="M11 1v3M11 18v3M3.5 3.5l2 2M16.5 16.5l2 2M1 11h3M18 11h3M3.5 18.5l2-2M16.5 5.5l2-2"/></svg>
           Impostazioni
         </div>
       </div>
       <div class="drawer-footer">
-        Habitat Palermo Edition · v0.1<br>
+        Habitat Oreto-Stazione · v0.8<br>
         Un'iniziativa civica indipendente.
+      </div>
+    </div>
+
+    <!-- Confirm dialog -->
+    <div class="confirm-overlay" id="confirm-overlay">
+      <div class="confirm-dialog">
+        <div class="confirm-title" id="confirm-title">Conferma</div>
+        <div class="confirm-msg" id="confirm-msg">Sei sicuro?</div>
+        <div class="confirm-actions">
+          <button class="confirm-btn cancel" id="confirm-cancel">Annulla</button>
+          <button class="confirm-btn danger" id="confirm-ok">Conferma</button>
+        </div>
       </div>
     </div>
 
@@ -2165,6 +2570,21 @@
     <div class="photo-viewer" id="photo-viewer" onclick="closePhotoViewer()">
       <button class="photo-viewer-close" onclick="event.stopPropagation(); closePhotoViewer()">×</button>
       <img id="photo-viewer-img" src="" alt="Foto segnalazione">
+    </div>
+
+    <!-- PWA install banner -->
+    <div class="install-banner" id="install-banner">
+      <div class="install-banner-icon">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 1v11M4 8l5 4 5-4M2 14h14"/></svg>
+      </div>
+      <div class="install-banner-text">
+        <b>Installa Habitat</b>
+        <span id="install-banner-msg">Aggiungilo alla schermata Home</span>
+      </div>
+      <div class="install-banner-actions">
+        <button class="install-banner-btn" id="install-banner-btn">Installa</button>
+        <button class="install-banner-dismiss" onclick="dismissInstallBanner()" aria-label="Chiudi">×</button>
+      </div>
     </div>
 
     <!-- Toast notification -->
@@ -2199,6 +2619,19 @@
     sosta: "#C84B3D", tombino: "#5a4a8a", altro: "#7A6552",
   };
   const PH_PER_REPORT = 30;
+
+  const STATUS_LABELS = {
+    'in-attesa': 'In attesa',
+    'in-lavorazione': 'In lavorazione',
+    'risolto': 'Risolto',
+  };
+  const NEXT_STATUS = {
+    'in-attesa': 'in-lavorazione',
+    'in-lavorazione': 'risolto',
+    'risolto': 'in-attesa',
+  };
+
+  let activeFilter = 'all';
 
   // ============================================================
   // STATO
@@ -2259,6 +2692,32 @@
   function closeDrawer() {
     document.getElementById('drawer').classList.remove('open');
     document.getElementById('drawer-overlay').classList.remove('open');
+  }
+
+  // Forza ricarica completa svuotando la cache
+  async function reloadApp() {
+    closeDrawer();
+    showToast('Aggiornamento in corso…');
+    try {
+      // Disattiva eventuali service worker
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        for (const reg of regs) await reg.unregister();
+      }
+      // Svuota la cache
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      }
+    } catch (e) {
+      // ignora errori, ricarica comunque
+    }
+    // Hard reload con timestamp per evitare cache HTTP
+    setTimeout(() => {
+      const url = new URL(window.location.href);
+      url.searchParams.set('_t', Date.now());
+      window.location.href = url.toString();
+    }, 400);
   }
 
   function switchSegTab(which) {
@@ -2331,10 +2790,13 @@
     const mapEl = document.getElementById('real-map');
     if (!mapEl) return;
 
+    // Forza minHeight per assicurarsi che il container abbia dimensioni
+    mapEl.style.minHeight = '300px';
+
     map = L.map('real-map', {
       zoomControl: true,
       attributionControl: true,
-      tap: false,        // disabilita il "tap simulato" deprecato — usa eventi nativi
+      tap: false,
       preferCanvas: false,
     }).setView([38.1031, 13.3683], 15);
 
@@ -2352,27 +2814,48 @@
       },
     }).addTo(map);
 
-    // Fit bounds + invalidateSize multipli per garantire rendering su mobile
+    // Funzione robusta per fit + invalidate
     const fitToOreto = () => {
-      try { map.invalidateSize(true); } catch (e) {}
-      try { map.fitBounds(oretoLayer.getBounds(), { padding: [20, 20] }); } catch (e) {}
+      if (!map) return;
+      try {
+        map.invalidateSize(true);
+        map.fitBounds(oretoLayer.getBounds(), { padding: [20, 20] });
+      } catch (e) {}
     };
+
+    // Esecuzione multipla a intervalli crescenti
     fitToOreto();
     requestAnimationFrame(fitToOreto);
-    setTimeout(fitToOreto, 100);
-    setTimeout(fitToOreto, 400);
+    [50, 200, 500, 1000, 2000].forEach(delay => setTimeout(fitToOreto, delay));
 
-    // Su mobile la viewport cambia (barra URL) → re-render
+    // ResizeObserver: ogni volta che il container cambia dimensione, ridisegna
+    if (window.ResizeObserver) {
+      const ro = new ResizeObserver(() => {
+        if (map) {
+          map.invalidateSize();
+        }
+      });
+      ro.observe(mapEl);
+    }
+
+    // Listener vari per garantire rendering
     window.addEventListener('resize', () => {
       if (map) map.invalidateSize();
     });
     window.addEventListener('orientationchange', () => {
       setTimeout(() => map && map.invalidateSize(), 200);
+      setTimeout(() => map && map.invalidateSize(), 600);
     });
-    // Visibilità (es. tornando dal background) → re-render
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden && map) {
         setTimeout(() => map.invalidateSize(), 50);
+        setTimeout(() => map.invalidateSize(), 300);
+      }
+    });
+    // Quando l'utente torna sulla pagina (es. dalla schermata home iOS)
+    window.addEventListener('pageshow', () => {
+      if (map) {
+        setTimeout(() => map.invalidateSize(), 100);
       }
     });
 
@@ -2392,6 +2875,7 @@
   }
 
   function addReportMarker(r) {
+    if (!map) return;
     const color = TYPE_COLORS[r.type] || '#7A6552';
     const icon = L.divIcon({
       className: 'report-marker-pin',
@@ -2399,19 +2883,13 @@
       iconSize: [22, 22], iconAnchor: [11, 11],
     });
     const m = L.marker([r.lat, r.lng], { icon }).addTo(map);
-    const photoThumb = (r.photos && r.photos.length > 0)
-      ? `<div style="margin-top:8px;cursor:pointer;" onclick="openPhotoViewer('${r.photos[0]}')">
-           <img src="${r.photos[0]}" style="width:100%;max-width:200px;border-radius:6px;display:block;" alt="Foto"/>
-           ${r.photos.length > 1 ? `<div style="font-size:10px;color:#6B5444;margin-top:4px;">+${r.photos.length - 1} altre foto · tocca per ingrandire</div>` : '<div style="font-size:10px;color:#6B5444;margin-top:4px;">Tocca per ingrandire</div>'}
-         </div>`
-      : '';
-    m.bindPopup(`
-      <strong>${TYPE_LABELS[r.type]}</strong>
-      <div>${escapeHtml(r.street)}${r.civic ? ', n. ' + escapeHtml(r.civic) : ''}</div>
-      ${r.description ? `<div style="margin-top:6px;font-style:italic;">"${escapeHtml(r.description)}"</div>` : ''}
-      ${photoThumb}
-      <small>${formatDate(r.timestamp)}</small>
-    `, { maxWidth: 240 });
+    m.bindPopup(buildPopupHTML(r), { maxWidth: 240 });
+
+    // Filtro corrente
+    if (activeFilter !== 'all' && r.type !== activeFilter) {
+      map.removeLayer(m);
+    }
+
     reportMarkers.set(r.id, m);
   }
 
@@ -2554,6 +3032,7 @@
     selectedCategory = null;
     pendingPhotos = [];
     renderPhotoPreview();
+    resetStatusPicker();
     document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('selected'));
   }
 
@@ -2740,7 +3219,7 @@
       type: selectedCategory,
       street, civic, description: desc,
       photos: pendingPhotos.slice(),  // copia
-      status: 'in-attesa',
+      status: pendingStatus || 'in-attesa',
       timestamp: Date.now(),
     };
     reports.push(r);
@@ -2780,7 +3259,7 @@
   function renderSegCard(r) {
     const color = TYPE_COLORS[r.type] || '#7A6552';
     const statusClass = r.status || 'in-attesa';
-    const statusLabel = { 'in-attesa': 'In attesa', 'in-lavorazione': 'In lavorazione', 'risolto': 'Risolto' }[statusClass] || 'In attesa';
+    const statusLabel = STATUS_LABELS[statusClass] || 'In attesa';
     const hasPhotos = r.photos && r.photos.length > 0;
     const photoHTML = hasPhotos
       ? `<img src="${r.photos[0]}" alt="Foto">${r.photos.length > 1 ? `<div class="seg-photo-extra">+${r.photos.length - 1}</div>` : ''}`
@@ -2790,18 +3269,33 @@
           <text x="40" y="44" text-anchor="middle" font-family="Bricolage Grotesque" font-weight="800" font-size="18" fill="white">${TYPE_LABELS[r.type].charAt(0)}</text>
           <rect x="0" y="60" width="80" height="20" fill="rgba(0,0,0,0.18)"/>
         </svg>`;
+
     return `
       <div class="seg-card" data-id="${r.id}">
-        <div class="seg-photo" style="background:${color};" data-photo-idx="0">
-          ${photoHTML}
-        </div>
-        <div class="seg-info">
-          <div>
+        <div class="seg-card-main">
+          <div class="seg-photo" style="background:${color};" data-photo-idx="0">
+            ${photoHTML}
+          </div>
+          <div class="seg-info">
             <div class="seg-cat-title">${escapeHtml(r.street)}${r.civic ? ', n. ' + escapeHtml(r.civic) : ''}</div>
             <div class="seg-date">${formatDate(r.timestamp)} · ${TYPE_LABELS[r.type]}</div>
-            ${r.description ? `<div class="seg-date" style="margin-top:4px;font-style:italic;">${escapeHtml(r.description.slice(0, 60))}${r.description.length > 60 ? '…' : ''}</div>` : ''}
+            ${r.description ? `<div class="seg-date" style="font-style:italic;">${escapeHtml(r.description.slice(0, 50))}${r.description.length > 50 ? '…' : ''}</div>` : ''}
+            <span class="seg-status ${statusClass}">${statusLabel}</span>
           </div>
-          <span class="seg-status ${statusClass}">${statusLabel}</span>
+        </div>
+        <div class="seg-actions">
+          <button class="seg-action-btn" data-action="status" data-id="${r.id}" title="Cambia stato">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8a6 6 0 1 1 1.5 4M2 12V8h4"/></svg>
+            <span>Stato</span>
+          </button>
+          <button class="seg-action-btn" data-action="share" data-id="${r.id}" title="Condividi">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="3.5" r="2"/><circle cx="3" cy="8" r="2"/><circle cx="13" cy="12.5" r="2"/><line x1="4.7" y1="6.9" x2="11.3" y2="4.6"/><line x1="4.7" y1="9.1" x2="11.3" y2="11.4"/></svg>
+            <span>Condividi</span>
+          </button>
+          <button class="seg-action-btn danger" data-action="delete" data-id="${r.id}" title="Elimina">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h10M5 4V2h6v2M4 4l1 10h6l1-10M7 7v5M9 7v5"/></svg>
+            <span>Elimina</span>
+          </button>
         </div>
       </div>
     `;
@@ -2823,12 +3317,33 @@
         const id = card.dataset.id;
         const r = reports.find(x => x.id === id);
         if (!r) return;
+
+        // Click su un action button → azione specifica
+        const actionBtn = ev.target.closest('.seg-action-btn');
+        if (actionBtn) {
+          ev.stopPropagation();
+          ev.preventDefault();
+          const action = actionBtn.dataset.action;
+          const btnId = actionBtn.dataset.id;
+          if (action === 'delete') {
+            confirmDelete(btnId);
+          } else if (action === 'share') {
+            const target = reports.find(x => x.id === btnId);
+            if (target) shareReport(target);
+          } else if (action === 'status') {
+            cycleStatus(btnId);
+          }
+          return;
+        }
+
         // Click sulla foto → apri il viewer
         if (ev.target.tagName === 'IMG' && r.photos && r.photos.length > 0) {
           ev.stopPropagation();
           openPhotoViewer(r.photos[0]);
           return;
         }
+
+        // Click generico sulla card → vai alla mappa sul marker
         navigateTo('home');
         setTimeout(() => {
           map.flyTo([r.lat, r.lng], 18, { duration: 0.7 });
@@ -2837,6 +3352,149 @@
         }, 80);
       });
     });
+  }
+
+  // ============================================================
+  // AZIONI SU SEGNALAZIONE
+  // ============================================================
+
+  // Custom confirm dialog (più affidabile di confirm() su iOS PWA)
+  function showConfirm(title, msg, onConfirm) {
+    const overlay = document.getElementById('confirm-overlay');
+    document.getElementById('confirm-title').textContent = title;
+    document.getElementById('confirm-msg').textContent = msg;
+    overlay.classList.add('show');
+
+    const cancelBtn = document.getElementById('confirm-cancel');
+    const okBtn = document.getElementById('confirm-ok');
+
+    const cleanup = () => {
+      overlay.classList.remove('show');
+      cancelBtn.onclick = null;
+      okBtn.onclick = null;
+      overlay.onclick = null;
+    };
+    cancelBtn.onclick = cleanup;
+    okBtn.onclick = () => {
+      cleanup();
+      onConfirm();
+    };
+    overlay.onclick = (e) => {
+      if (e.target === overlay) cleanup();
+    };
+  }
+
+  function confirmDelete(id) {
+    const r = reports.find(x => x.id === id);
+    if (!r) return;
+    showConfirm(
+      'Eliminare segnalazione?',
+      `${TYPE_LABELS[r.type]} in ${r.street}. Questa azione non può essere annullata.`,
+      () => deleteReport(id)
+    );
+  }
+
+  function deleteReport(id) {
+    const idx = reports.findIndex(r => r.id === id);
+    if (idx === -1) return;
+    const r = reports[idx];
+    reports.splice(idx, 1);
+    safeSet('oreto_reports_v2', reports);
+
+    const m = reportMarkers.get(id);
+    if (m) {
+      map.removeLayer(m);
+      reportMarkers.delete(id);
+    }
+
+    refreshReportsUI();
+    updateHomePanelUI();
+    updateProfileUI();
+    showToast('Segnalazione eliminata');
+  }
+
+  function cycleStatus(id) {
+    const r = reports.find(x => x.id === id);
+    if (!r) return;
+    const currentStatus = r.status || 'in-attesa';
+    r.status = NEXT_STATUS[currentStatus] || 'in-attesa';
+    safeSet('oreto_reports_v2', reports);
+
+    // Aggiorna marker (cambia colore se necessario, qui è lo stesso ma riapplichiamo popup)
+    const m = reportMarkers.get(id);
+    if (m) {
+      m.setPopupContent(buildPopupHTML(r));
+    }
+
+    refreshReportsUI();
+    showToast(`Stato: ${STATUS_LABELS[r.status]}`);
+  }
+
+  async function shareReport(r) {
+    const baseUrl = window.location.origin + window.location.pathname;
+    const shareUrl = `${baseUrl}#r=${r.id}`;
+    const shareText = `${TYPE_LABELS[r.type]} in ${r.street}${r.civic ? ', n. ' + r.civic : ''}\n${r.description || ''}\n${shareUrl}`.trim();
+
+    // Web Share API se disponibile (mobile moderno)
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Habitat · ${TYPE_LABELS[r.type]}`,
+          text: shareText,
+          url: shareUrl,
+        });
+        return;
+      } catch (err) {
+        // L'utente ha annullato o c'è stato un errore — proviamo il fallback
+        if (err.name === 'AbortError') return;
+      }
+    }
+
+    // Fallback: copia negli appunti
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      showToast('Link copiato negli appunti ✓');
+    } catch (err) {
+      // Ultimo fallback: prompt per copia manuale
+      prompt('Copia questo link:', shareUrl);
+    }
+  }
+
+  function buildPopupHTML(r) {
+    const photoThumb = (r.photos && r.photos.length > 0)
+      ? `<div style="margin-top:8px;cursor:pointer;" onclick="openPhotoViewer('${r.photos[0]}')">
+           <img src="${r.photos[0]}" style="width:100%;max-width:200px;border-radius:6px;display:block;" alt="Foto"/>
+           ${r.photos.length > 1 ? `<div style="font-size:10px;color:#6B5444;margin-top:4px;">+${r.photos.length - 1} altre foto · tocca per ingrandire</div>` : '<div style="font-size:10px;color:#6B5444;margin-top:4px;">Tocca per ingrandire</div>'}
+         </div>`
+      : '';
+    const statusBadge = `<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;background:${getStatusColor(r.status).bg};color:${getStatusColor(r.status).fg};margin-top:4px;">${STATUS_LABELS[r.status || 'in-attesa']}</span>`;
+    return `
+      <strong>${TYPE_LABELS[r.type]}</strong>
+      ${statusBadge}
+      <div style="margin-top:6px;">${escapeHtml(r.street)}${r.civic ? ', n. ' + escapeHtml(r.civic) : ''}</div>
+      ${r.description ? `<div style="margin-top:6px;font-style:italic;">"${escapeHtml(r.description)}"</div>` : ''}
+      ${photoThumb}
+      <div style="margin-top:10px;display:flex;gap:6px;">
+        <button onclick="shareReportById('${r.id}')" style="flex:1;background:#F8EBD3;border:1px solid rgba(110,31,24,0.22);color:#2C1810;font-size:11px;padding:5px;border-radius:6px;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;font-weight:600;">↗ Condividi</button>
+        <button onclick="cycleStatus('${r.id}')" style="flex:1;background:#F8EBD3;border:1px solid rgba(110,31,24,0.22);color:#2C1810;font-size:11px;padding:5px;border-radius:6px;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;font-weight:600;">↻ Stato</button>
+      </div>
+      <small>${formatDate(r.timestamp)}</small>
+    `;
+  }
+
+  function getStatusColor(status) {
+    const map = {
+      'in-attesa': { bg: '#F2CFCB', fg: '#9A3429' },
+      'in-lavorazione': { bg: 'rgba(232,177,75,0.25)', fg: '#C68B2C' },
+      'risolto': { bg: '#B5D1A8', fg: '#2D5022' },
+    };
+    return map[status] || map['in-attesa'];
+  }
+
+  // Helper per popup (i bottoni nel popup chiamano queste)
+  function shareReportById(id) {
+    const r = reports.find(x => x.id === id);
+    if (r) shareReport(r);
   }
 
   // ============================================================
@@ -3006,11 +3664,212 @@
   });
 
   // ============================================================
+  // FILTRI MAPPA
+  // ============================================================
+  function setActiveFilter(filter) {
+    activeFilter = filter;
+    document.querySelectorAll('.filter-chip').forEach(chip => {
+      chip.classList.toggle('active', chip.dataset.filter === filter);
+    });
+    // Mostra/nascondi marker
+    reports.forEach(r => {
+      const m = reportMarkers.get(r.id);
+      if (!m) return;
+      if (filter === 'all' || r.type === filter) {
+        if (!map.hasLayer(m)) m.addTo(map);
+      } else {
+        if (map.hasLayer(m)) map.removeLayer(m);
+      }
+    });
+  }
+
+  function initFilters() {
+    document.querySelectorAll('.filter-chip').forEach(chip => {
+      chip.addEventListener('click', () => setActiveFilter(chip.dataset.filter));
+    });
+  }
+
+  // ============================================================
+  // STATUS PICKER NEL FORM
+  // ============================================================
+  let pendingStatus = 'in-attesa';
+
+  function initStatusPicker() {
+    document.querySelectorAll('#status-picker .status-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#status-picker .status-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        pendingStatus = btn.dataset.status;
+      });
+    });
+  }
+
+  function resetStatusPicker() {
+    pendingStatus = 'in-attesa';
+    document.querySelectorAll('#status-picker .status-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.status === 'in-attesa');
+    });
+  }
+
+  // ============================================================
+  // DEEP LINKING (#r=ID nell'URL → apri quella segnalazione)
+  // ============================================================
+  function handleDeeplink() {
+    const hash = window.location.hash;
+    const m = hash.match(/^#r=(.+)$/);
+    if (!m) return;
+    const id = m[1];
+    const r = reports.find(x => x.id === id);
+    if (!r) {
+      // Segnalazione non in localStorage (probabilmente di un altro utente)
+      // Mostra un banner che spiega
+      const banner = document.getElementById('deeplink-banner');
+      const detail = document.getElementById('deeplink-banner-detail');
+      if (banner && detail) {
+        detail.textContent = 'Segnalazione non disponibile su questo dispositivo. Quando attiveremo il backend condiviso, la vedrai.';
+        banner.classList.add('show');
+      }
+      return;
+    }
+    // Apri la segnalazione
+    setTimeout(() => {
+      navigateTo('home');
+      setTimeout(() => {
+        if (map) {
+          map.flyTo([r.lat, r.lng], 18, { duration: 0.8 });
+          const marker = reportMarkers.get(id);
+          if (marker) setTimeout(() => marker.openPopup(), 850);
+        }
+      }, 200);
+    }, 300);
+
+    const banner = document.getElementById('deeplink-banner');
+    const detail = document.getElementById('deeplink-banner-detail');
+    if (banner && detail) {
+      detail.textContent = `${TYPE_LABELS[r.type]} · ${r.street}`;
+      banner.classList.add('show');
+    }
+  }
+
+  function closeDeeplinkBanner() {
+    const banner = document.getElementById('deeplink-banner');
+    if (banner) banner.classList.remove('show');
+    // Pulisci hash
+    if (window.history.replaceState) {
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  }
+
+  // ============================================================
+  // PWA: MANIFEST INLINE + INSTALL PROMPT
+  // ============================================================
+  function setupPWAManifest() {
+    const manifest = {
+      name: "Habitat Oreto-Stazione",
+      short_name: "Habitat",
+      description: "Segnala problemi del quartiere 3 di Palermo",
+      start_url: "./",
+      scope: "./",
+      display: "standalone",
+      orientation: "portrait",
+      background_color: "#F8EBD3",
+      theme_color: "#9A3429",
+      lang: "it",
+      icons: [
+        {
+          src: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" rx="40" fill="%239A3429"/><path d="M96 42 L140 110 L116 110 L116 150 L76 150 L76 110 L52 110 Z" fill="%23F8EBD3"/></svg>',
+          sizes: "192x192",
+          type: "image/svg+xml",
+          purpose: "any maskable",
+        },
+        {
+          src: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="100" fill="%239A3429"/><path d="M256 110 L370 290 L308 290 L308 400 L204 400 L204 290 L142 290 Z" fill="%23F8EBD3"/></svg>',
+          sizes: "512x512",
+          type: "image/svg+xml",
+          purpose: "any maskable",
+        },
+      ],
+    };
+    const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.getElementById('manifest-link');
+    if (link) link.href = url;
+  }
+
+  let deferredInstallPrompt = null;
+
+  function setupInstallPrompt() {
+    // Se siamo già in modalità standalone (PWA installata), non fare nulla
+    if (window.matchMedia('(display-mode: standalone)').matches ||
+        window.navigator.standalone === true) {
+      return;
+    }
+
+    // Banner già dismissato in passato
+    const dismissed = safeGet('install_banner_dismissed', null);
+    if (dismissed) {
+      const dismissedRecently = (Date.now() - dismissed) < (7 * 24 * 3600 * 1000);
+      if (dismissedRecently) return;
+    }
+
+    // Android/Chrome: evento beforeinstallprompt
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      showInstallBanner('chrome');
+    });
+
+    // iOS Safari: niente evento, mostriamo istruzioni dopo 30 secondi se l'utente ha interagito
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    if (isIOS) {
+      setTimeout(() => {
+        // Mostra solo se almeno una segnalazione è stata creata (segnale d'engagement)
+        if (reports.length >= 1) {
+          showInstallBanner('ios');
+        }
+      }, 30000);
+    }
+  }
+
+  function showInstallBanner(kind) {
+    const banner = document.getElementById('install-banner');
+    const msg = document.getElementById('install-banner-msg');
+    const btn = document.getElementById('install-banner-btn');
+    if (!banner) return;
+
+    if (kind === 'ios') {
+      msg.textContent = 'Premi Condividi → "Aggiungi a Home"';
+      btn.style.display = 'none';
+    } else {
+      msg.textContent = 'Aggiungilo alla schermata Home';
+      btn.style.display = '';
+      btn.onclick = async () => {
+        if (deferredInstallPrompt) {
+          deferredInstallPrompt.prompt();
+          const { outcome } = await deferredInstallPrompt.userChoice;
+          if (outcome === 'accepted') {
+            showToast('App installata! ✓');
+            banner.classList.remove('show');
+          }
+          deferredInstallPrompt = null;
+        }
+      };
+    }
+    banner.classList.add('show');
+  }
+
+  function dismissInstallBanner() {
+    document.getElementById('install-banner').classList.remove('show');
+    safeSet('install_banner_dismissed', Date.now());
+  }
+
+  // ============================================================
   // INIT
   // ============================================================
   reports = safeGet('oreto_reports_v2', []);
 
   function initAll() {
+    setupPWAManifest();
     initMap();
     reports.forEach(addReportMarker);
     refreshReportsUI();
@@ -3018,7 +3877,12 @@
     updateProfileNameDisplay();
     updateProfileUI();
     initPhotoInput();
+    initFilters();
+    initStatusPicker();
+    setupInstallPrompt();
     loadStreets();
+    // Deep link gestito dopo che la mappa è pronta
+    setTimeout(handleDeeplink, 600);
   }
 
   document.addEventListener('DOMContentLoaded', initAll);
